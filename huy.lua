@@ -972,7 +972,10 @@ local function CreateSliderElement(text, flag, min, max, default, increment, too
 end
 function Library:CreateWindow(options)
     if options and options.Name then Config.Name = options.Name end
+    if options and options.Title then Config.Name = options.Title end
     if options and options.ConfigFolder then Config.ConfigFolder = options.ConfigFolder end
+    if options and options.Font then Config.FontMain = options.Font end
+    local _windowIcon = options and options.Icon or nil
     if not isfolder(Config.ConfigFolder) then makefolder(Config.ConfigFolder) end
     Library:Unload()
     Library:InitWatermark()
@@ -1151,31 +1154,51 @@ function Library:CreateWindow(options)
             Title.Parent = Bar
             return Bar, nil, BackBtn
         else
+            local logoOffsetX = 15
+            local headerH = 55
+            if _windowIcon then
+                local LogoIcon = Instance.new("ImageLabel")
+                LogoIcon.Size = UDim2.new(0, 28, 0, 28)
+                LogoIcon.Position = UDim2.new(0, 12, 0, 14)
+                LogoIcon.BackgroundTransparency = 1
+                LogoIcon.Image = tostring(_windowIcon)
+                if not string.find(tostring(_windowIcon), "rbxassetid") then
+                    LogoIcon.Image = "rbxassetid://" .. tostring(_windowIcon)
+                end
+                LogoIcon.ScaleType = Enum.ScaleType.Fit
+                LogoIcon.Parent = Bar
+                Corner(LogoIcon, 6)
+                logoOffsetX = 46
+            end
             local Logo = Instance.new("TextLabel")
             Logo.Text = Config.Name
             Logo.RichText = true
-            Logo.Position = UDim2.new(0, 15, 0, 12)
-            Logo.Size = UDim2.new(1, -20, 0, 36)
+            Logo.Position = UDim2.new(0, logoOffsetX, 0, 10)
+            Logo.Size = UDim2.new(1, -(logoOffsetX + 10), 0, 36)
             Logo.Font = Config.FontBold
             Logo.TextSize = 18
             Logo.TextScaled = true
             local LogoConstraint = Instance.new("UITextSizeConstraint")
             LogoConstraint.MaxTextSize = 20
-            LogoConstraint.MinTextSize = 12
+            LogoConstraint.MinTextSize = 10
             LogoConstraint.Parent = Logo
             Logo.TextColor3 = Theme.Accent
             Logo.TextXAlignment = Enum.TextXAlignment.Left
+            Logo.TextTruncate = Enum.TextTruncate.AtEnd
             Logo.BackgroundTransparency = 1
             Logo.Parent = Bar
             RegisterTheme(Logo, "TextColor")
             local Container = Instance.new("ScrollingFrame")
-            Container.Size = UDim2.new(1, 0, 1, -130)
-            Container.Position = UDim2.new(0, 0, 0, 60)
+            Container.Size = UDim2.new(1, 0, 1, -(headerH + 70))
+            Container.Position = UDim2.new(0, 0, 0, headerH)
             Container.BackgroundTransparency = 1
             Container.BorderSizePixel = 0
-            Container.ScrollBarThickness = 2
+            Container.ScrollBarThickness = UserInputService.TouchEnabled and 4 or 2
             Container.ScrollBarImageColor3 = Theme.Accent
             Container.AutomaticCanvasSize = Enum.AutomaticSize.Y
+            Container.ScrollingDirection = Enum.ScrollingDirection.Y
+            Container.ElasticBehavior = Enum.ElasticBehavior.Always
+            Container.ScrollingEnabled = true
             Container.ClipsDescendants = true
             Container.Parent = Bar
             RegisterTheme(Container, "ScrollBar")
@@ -1811,12 +1834,15 @@ function Library:CreateWindow(options)
     end
     local function PopulateSettings()
         local SetPage = Instance.new("ScrollingFrame")
-        SetPage.Size = UDim2.new(1, -200, 1, -20)
-        SetPage.Position = UDim2.new(0, 190, 0, 10)
+        SetPage.Size = UDim2.new(1, -191, 1, -20)
+        SetPage.Position = UDim2.new(0, 181, 0, 10)
         SetPage.BackgroundTransparency = 1
-        SetPage.ScrollBarThickness = 2
+        SetPage.ScrollBarThickness = UserInputService.TouchEnabled and 5 or 2
         SetPage.ScrollBarImageColor3 = Theme.Accent
         SetPage.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        SetPage.ScrollingDirection = Enum.ScrollingDirection.Y
+        SetPage.ElasticBehavior = Enum.ElasticBehavior.Always
+        SetPage.ScrollingEnabled = true
         SetPage.Active = true
         SetPage.Parent = SettingsWindow
         RegisterTheme(SetPage, "ScrollBar")
@@ -2238,7 +2264,11 @@ function Library:CreateWindow(options)
         Page.Size = UDim2.new(1, -20, 1, -20)
         Page.Position = UDim2.new(0, 10, 0, 10)
         Page.BackgroundTransparency = 1
-        Page.ScrollBarThickness = UserInputService.TouchEnabled and 3 or 0
+        Page.ScrollBarThickness = UserInputService.TouchEnabled and 6 or 0
+        Page.ScrollingDirection = Enum.ScrollingDirection.Y
+        Page.ElasticBehavior = Enum.ElasticBehavior.Always
+        Page.ScrollingEnabled = true
+        Page.Selectable = true
         Page.Visible = false
         Page.Active = true
         Page.AutomaticCanvasSize = Enum.AutomaticSize.Y
