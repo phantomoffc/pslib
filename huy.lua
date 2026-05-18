@@ -975,7 +975,6 @@ function Library:CreateWindow(options)
     if options and options.Title then Config.Name = options.Title end
     if options and options.ConfigFolder then Config.ConfigFolder = options.ConfigFolder end
     if options and options.Font then Config.FontMain = options.Font end
-    local _windowIcon = options and options.Icon or nil
     if not isfolder(Config.ConfigFolder) then makefolder(Config.ConfigFolder) end
     Library:Unload()
     Library:InitWatermark()
@@ -1154,43 +1153,23 @@ function Library:CreateWindow(options)
             Title.Parent = Bar
             return Bar, nil, BackBtn
         else
-            local logoOffsetX = 15
-            local headerH = 55
-            if _windowIcon then
-                local LogoIcon = Instance.new("ImageLabel")
-                LogoIcon.Size = UDim2.new(0, 28, 0, 28)
-                LogoIcon.Position = UDim2.new(0, 12, 0, 14)
-                LogoIcon.BackgroundTransparency = 1
-                LogoIcon.Image = tostring(_windowIcon)
-                if not string.find(tostring(_windowIcon), "rbxassetid") then
-                    LogoIcon.Image = "rbxassetid://" .. tostring(_windowIcon)
-                end
-                LogoIcon.ScaleType = Enum.ScaleType.Fit
-                LogoIcon.Parent = Bar
-                Corner(LogoIcon, 6)
-                logoOffsetX = 46
-            end
             local Logo = Instance.new("TextLabel")
             Logo.Text = Config.Name
             Logo.RichText = true
-            Logo.Position = UDim2.new(0, logoOffsetX, 0, 10)
-            Logo.Size = UDim2.new(1, -(logoOffsetX + 10), 0, 36)
+            Logo.Position = UDim2.new(0, 15, 0, 15)
+            Logo.Size = UDim2.new(1, -30, 0, 30)
             Logo.Font = Config.FontBold
-            Logo.TextSize = 18
-            Logo.TextScaled = true
-            local LogoConstraint = Instance.new("UITextSizeConstraint")
-            LogoConstraint.MaxTextSize = 20
-            LogoConstraint.MinTextSize = 10
-            LogoConstraint.Parent = Logo
+            Logo.TextSize = 20
             Logo.TextColor3 = Theme.Accent
             Logo.TextXAlignment = Enum.TextXAlignment.Left
             Logo.TextTruncate = Enum.TextTruncate.AtEnd
+            Logo.ClipsDescendants = true
             Logo.BackgroundTransparency = 1
             Logo.Parent = Bar
             RegisterTheme(Logo, "TextColor")
             local Container = Instance.new("ScrollingFrame")
-            Container.Size = UDim2.new(1, 0, 1, -(headerH + 70))
-            Container.Position = UDim2.new(0, 0, 0, headerH)
+            Container.Size = UDim2.new(1, 0, 1, -120)
+            Container.Position = UDim2.new(0, 0, 0, 50)
             Container.BackgroundTransparency = 1
             Container.BorderSizePixel = 0
             Container.ScrollBarThickness = UserInputService.TouchEnabled and 4 or 2
