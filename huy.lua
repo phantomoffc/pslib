@@ -188,17 +188,17 @@ local function MakeResizable(resizeBtn, frame, minSize)
     table.insert(Library.Connections, c3)
     table.insert(Library.Connections, c4)
 end
-local function IsMobile()
+local function IsPortraitMobile()
     local vp = workspace.CurrentCamera.ViewportSize
-    return vp.X < 700 or (UserInputService.TouchEnabled and vp.X < 1200)
+    return UserInputService.TouchEnabled and vp.X < 500
 end
 local function GetBaseScale()
     local vp = workspace.CurrentCamera.ViewportSize
     if vp.X < 1 or vp.Y < 1 then return 1 end
-    if IsMobile() then
-        local scaleX = (vp.X * 0.95) / 650
-        local scaleY = (vp.Y * 0.85) / 400
-        return math.clamp(math.min(scaleX, scaleY), 0.5, 1.5)
+    if UserInputService.TouchEnabled then
+        local scaleX = (vp.X * 0.92) / 650
+        local scaleY = (vp.Y * 0.88) / 400
+        return math.clamp(math.min(scaleX, scaleY), 0.5, 1.2)
     end
     local scaleX = vp.X / 800
     local scaleY = vp.Y / 500
@@ -682,7 +682,7 @@ local function CreateDropdownElement(text, flag, options, default, tooltipText, 
     ListFrame.ZIndex = 10
     ListFrame.Visible = false
     ListFrame.Active = true
-    ListFrame.ScrollBarThickness = IsMobile() and 6 or 2
+    ListFrame.ScrollBarThickness = 2
     ListFrame.ScrollBarImageColor3 = Theme.Accent
     ListFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
     Corner(ListFrame, 4)
@@ -976,8 +976,7 @@ function Library:CreateWindow(options)
     if not isfolder(Config.ConfigFolder) then makefolder(Config.ConfigFolder) end
     Library:Unload()
     Library:InitWatermark()
-    local _isMobile = IsMobile()
-    local _sidebarWidth = _isMobile and 140 or 180
+    local _isPortrait = IsPortraitMobile()
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = Config.Name
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -991,8 +990,8 @@ function Library:CreateWindow(options)
     MiniGui.Enabled = true
     MiniGui.IgnoreGuiInset = true
     local MiniButton = Instance.new("ImageButton")
-    MiniButton.Size = _isMobile and UDim2.new(0, 56, 0, 56) or UDim2.new(0, 46, 0, 46)
-    MiniButton.Position = _isMobile and UDim2.new(0, 15, 0.5, -28) or UDim2.new(0, 20, 0.5, -23)
+    MiniButton.Size = UDim2.new(0, 46, 0, 46)
+    MiniButton.Position = UDim2.new(0, 20, 0.5, -23)
     MiniButton.BackgroundColor3 = Theme.Background
     MiniButton.BackgroundTransparency = 0.1
     MiniButton.Image = "rbxassetid://112964043447417"
@@ -1054,7 +1053,7 @@ function Library:CreateWindow(options)
         Frame.Active = true
         local SizeConstraint = Instance.new("UISizeConstraint")
         SizeConstraint.MaxSize = Vector2.new(1400, 900)
-        SizeConstraint.MinSize = _isMobile and Vector2.new(300, 250) or Vector2.new(450, 300)
+        SizeConstraint.MinSize = _isPortrait and Vector2.new(300, 250) or Vector2.new(450, 300)
         SizeConstraint.Parent = Frame
         Corner(Frame, 6)
         Stroke(Frame, Theme.Stroke, 1, 0)
@@ -1069,7 +1068,7 @@ function Library:CreateWindow(options)
         Corner(BgNoise, 6)
         local DragHeader = Instance.new("Frame")
         DragHeader.Name = "DragHeader"
-        DragHeader.Size = UDim2.new(0, _sidebarWidth, 0, 60)
+        DragHeader.Size = UDim2.new(0, 180, 0, 60)
         DragHeader.BackgroundTransparency = 1
         DragHeader.Parent = Frame
         local Scale = Instance.new("UIScale")
@@ -1108,10 +1107,10 @@ function Library:CreateWindow(options)
     end)
     table.insert(Library.Connections, c2)
     table.insert(Library.Connections, c3)
-    MakeResizable(Resizer, MainWindow, _isMobile and Vector2.new(300, 250) or Vector2.new(450, 300))
+    MakeResizable(Resizer, MainWindow, Vector2.new(450, 300))
     local function CreateSidebar(parent, isSettings)
         local Bar = Instance.new("Frame")
-        Bar.Size = UDim2.new(0, _sidebarWidth, 1, 0)
+        Bar.Size = UDim2.new(0, 180, 1, 0)
         Bar.BackgroundColor3 = Theme.Sidebar
         Bar.BorderSizePixel = 0
         Bar.Parent = parent
@@ -1155,10 +1154,15 @@ function Library:CreateWindow(options)
             local Logo = Instance.new("TextLabel")
             Logo.Text = Config.Name
             Logo.RichText = true
-            Logo.Position = UDim2.new(0, 15, 0, 20)
-            Logo.Size = UDim2.new(1, -30, 0, 30)
+            Logo.Position = UDim2.new(0, 15, 0, 12)
+            Logo.Size = UDim2.new(1, -20, 0, 36)
             Logo.Font = Config.FontBold
-            Logo.TextSize = 20
+            Logo.TextSize = 18
+            Logo.TextScaled = true
+            local LogoConstraint = Instance.new("UITextSizeConstraint")
+            LogoConstraint.MaxTextSize = 20
+            LogoConstraint.MinTextSize = 12
+            LogoConstraint.Parent = Logo
             Logo.TextColor3 = Theme.Accent
             Logo.TextXAlignment = Enum.TextXAlignment.Left
             Logo.BackgroundTransparency = 1
@@ -1169,7 +1173,7 @@ function Library:CreateWindow(options)
             Container.Position = UDim2.new(0, 0, 0, 60)
             Container.BackgroundTransparency = 1
             Container.BorderSizePixel = 0
-            Container.ScrollBarThickness = _isMobile and 5 or 2
+            Container.ScrollBarThickness = 2
             Container.ScrollBarImageColor3 = Theme.Accent
             Container.AutomaticCanvasSize = Enum.AutomaticSize.Y
             Container.ClipsDescendants = true
@@ -1311,8 +1315,8 @@ function Library:CreateWindow(options)
     table.insert(Library.Connections, MenuBindConnection)
     local WindowObj = {}
     local MainPages = Instance.new("Frame")
-    MainPages.Size = UDim2.new(1, -(_sidebarWidth + 1), 1, 0)
-    MainPages.Position = UDim2.new(0, _sidebarWidth + 1, 0, 0)
+    MainPages.Size = UDim2.new(1, -181, 1, 0)
+    MainPages.Position = UDim2.new(0, 181, 0, 0)
     MainPages.BackgroundTransparency = 1
     MainPages.Parent = MainWindow
     function WindowObj:CreateRawSection(text, parent)
@@ -1807,10 +1811,10 @@ function Library:CreateWindow(options)
     end
     local function PopulateSettings()
         local SetPage = Instance.new("ScrollingFrame")
-        SetPage.Size = UDim2.new(1, -(_sidebarWidth + 20), 1, -20)
-        SetPage.Position = UDim2.new(0, _sidebarWidth + 10, 0, 10)
+        SetPage.Size = UDim2.new(1, -200, 1, -20)
+        SetPage.Position = UDim2.new(0, 190, 0, 10)
         SetPage.BackgroundTransparency = 1
-        SetPage.ScrollBarThickness = _isMobile and 5 or 2
+        SetPage.ScrollBarThickness = 2
         SetPage.ScrollBarImageColor3 = Theme.Accent
         SetPage.AutomaticCanvasSize = Enum.AutomaticSize.Y
         SetPage.Active = true
@@ -1949,7 +1953,7 @@ function Library:CreateWindow(options)
         CDListFrame.ZIndex = 10
         CDListFrame.Visible = false
         CDListFrame.Active = true
-        CDListFrame.ScrollBarThickness = _isMobile and 5 or 2
+        CDListFrame.ScrollBarThickness = 2
         CDListFrame.ScrollBarImageColor3 = Theme.Accent
         CDListFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
         Corner(CDListFrame, 4)
@@ -2234,7 +2238,7 @@ function Library:CreateWindow(options)
         Page.Size = UDim2.new(1, -20, 1, -20)
         Page.Position = UDim2.new(0, 10, 0, 10)
         Page.BackgroundTransparency = 1
-        Page.ScrollBarThickness = _isMobile and 4 or 0
+        Page.ScrollBarThickness = UserInputService.TouchEnabled and 3 or 0
         Page.Visible = false
         Page.Active = true
         Page.AutomaticCanvasSize = Enum.AutomaticSize.Y
@@ -2310,7 +2314,7 @@ function Library:CreateWindow(options)
             Indicator.BackgroundTransparency = 0
         end
         local LeftCol = Instance.new("Frame")
-        LeftCol.Size = _isMobile and UDim2.new(1, 0, 0, 0) or UDim2.new(0.5, -5, 0, 0)
+        LeftCol.Size = _isPortrait and UDim2.new(1, 0, 0, 0) or UDim2.new(0.5, -5, 0, 0)
         LeftCol.Position = UDim2.new(0, 0, 0, 0)
         LeftCol.BackgroundTransparency = 1
         LeftCol.AutomaticSize = Enum.AutomaticSize.Y
@@ -2320,7 +2324,7 @@ function Library:CreateWindow(options)
         LeftList.Padding = UDim.new(0, 10)
         LeftList.Parent = LeftCol
         local RightCol, RightList
-        if _isMobile then
+        if _isPortrait then
             RightCol = LeftCol
             RightList = LeftList
         else
@@ -2369,7 +2373,7 @@ function Library:CreateWindow(options)
             List.Parent = Content
             local function UpdateSize()
                 Container.Size = UDim2.new(1, 0, 0, List.AbsoluteContentSize.Y + 35)
-                if _isMobile then
+                if _isPortrait then
                     Page.CanvasSize = UDim2.new(0, 0, 0, LeftList.AbsoluteContentSize.Y + 20)
                 else
                     Page.CanvasSize = UDim2.new(0, 0, 0, math.max(LeftList.AbsoluteContentSize.Y, RightList.AbsoluteContentSize.Y) + 20)
