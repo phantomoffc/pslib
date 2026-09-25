@@ -204,6 +204,11 @@ function Library:Unload()
     Library.Connections = {}
     if Library.ScreenGui then pcall(function() Library.ScreenGui:Destroy() end) Library.ScreenGui = nil end
     if Library.KeybindList then pcall(function() Library.KeybindList.Screen:Destroy() end) Library.KeybindList = nil end
+    pcall(function()
+        for _, e in pairs(game:GetService("Lighting"):GetChildren()) do
+            if e.Name == "PhantomSplashBlur" or e.Name == "PhantomSplashTint" then e:Destroy() end
+        end
+    end)
     for _, g in pairs(GetParent():GetChildren()) do
         if g.Name == "PrismaMini" or g.Name == Config.Name or g.Name == "PrismaKeybinds" or g.Name == "PrismaLoader" or g.Name == "PhantomNotifications" or g.Name == "PhantomWatermark" or g.Name == "PhantomTooltip" or g.Name == "PhantomMiniButton" then
             pcall(function() g:Destroy() end)
@@ -961,6 +966,26 @@ local function CreateSliderElement(text, flag, min, max, default, increment, too
     task.spawn(callback, val)
     return Frame
 end
+local DiscordInvite = "https://discord.gg/6S7gHAPg3A"
+local function notify(title, text, duration)
+    Library:Notify(title, text, duration)
+end
+local function copyDiscord()
+    if setclipboard then
+        setclipboard(DiscordInvite)
+    end
+    notify("Discord", "Invite link copied to clipboard", 5)
+end
+local function openDiscord()
+    if setclipboard then
+        setclipboard(DiscordInvite)
+    end
+    notify("Discord", "Invite link copied to clipboard", 5)
+    pcall(function()
+        local inviter = loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Discord%20Inviter/Source.lua"))()
+        inviter.Join(DiscordInvite)
+    end)
+end
 function Library:CreateWindow(options)
     if options and options.Name then Config.Name = options.Name end
     if options and options.ConfigFolder then Config.ConfigFolder = options.ConfigFolder end
@@ -1169,7 +1194,7 @@ function Library:CreateWindow(options)
             LogoUnder.BorderSizePixel = 0
             LogoUnder.Parent = Bar
             local Container = Instance.new("ScrollingFrame")
-            Container.Size = UDim2.new(1, 0, 1, -130)
+            Container.Size = UDim2.new(1, 0, 1, -172)
             Container.Position = UDim2.new(0, 0, 0, 60)
             Container.BackgroundTransparency = 1
             Container.BorderSizePixel = 0
@@ -1188,6 +1213,26 @@ function Library:CreateWindow(options)
         end
     end
     local MainBar, TabContainer, _ = CreateSidebar(MainWindow, false)
+    local DiscordBtn = Instance.new("TextButton")
+    DiscordBtn.Size = UDim2.new(1, -20, 0, 30)
+    DiscordBtn.Position = UDim2.new(0, 10, 1, -102)
+    DiscordBtn.BackgroundColor3 = Theme.Container
+    DiscordBtn.Text = "Join Discord"
+    DiscordBtn.Font = Config.FontBold
+    DiscordBtn.TextSize = 13
+    DiscordBtn.TextColor3 = Theme.Accent
+    DiscordBtn.AutoButtonColor = false
+    DiscordBtn.Parent = MainBar
+    Corner(DiscordBtn, 4)
+    local DiscordStroke = Stroke(DiscordBtn, Theme.Accent, 1, 0.5)
+    RegisterTheme(DiscordBtn, "TextColor")
+    RegisterTheme(DiscordStroke, "BorderColor")
+    local cd1 = DiscordBtn.MouseEnter:Connect(function() Tween(DiscordBtn, {BackgroundColor3 = Theme.Section}) end)
+    local cd2 = DiscordBtn.MouseLeave:Connect(function() Tween(DiscordBtn, {BackgroundColor3 = Theme.Container}) end)
+    local cd3 = DiscordBtn.MouseButton1Click:Connect(function() task.spawn(openDiscord) end)
+    table.insert(Library.Connections, cd1)
+    table.insert(Library.Connections, cd2)
+    table.insert(Library.Connections, cd3)
     local SetBar, SetContainer, BackBtn = CreateSidebar(SettingsWindow, true)
     local ProfileBtn = Instance.new("TextButton")
     ProfileBtn.Size = UDim2.new(1, 0, 0, 60)
@@ -3268,6 +3313,151 @@ function Library:CreateWindow(options)
     task.defer(function()
         Library:LoadConfig("_autosave")
     end)
+    local Lighting = game:GetService("Lighting")
+    local SplashBlur = Instance.new("BlurEffect")
+    SplashBlur.Name = "PhantomSplashBlur"
+    SplashBlur.Size = 0
+    SplashBlur.Parent = Lighting
+    local SplashTint = Instance.new("ColorCorrectionEffect")
+    SplashTint.Name = "PhantomSplashTint"
+    SplashTint.TintColor = Color3.new(1, 1, 1)
+    SplashTint.Parent = Lighting
+    local Splash = Instance.new("CanvasGroup")
+    Splash.Name = "DiscordSplash"
+    Splash.Size = UDim2.new(1, 0, 1, 0)
+    Splash.BackgroundColor3 = Color3.fromRGB(70, 8, 8)
+    Splash.BackgroundTransparency = 0.35
+    Splash.BorderSizePixel = 0
+    Splash.GroupTransparency = 1
+    Splash.ZIndex = 50
+    Splash.Parent = MainWindow
+    Corner(Splash, 6)
+    local InputBlocker = Instance.new("TextButton")
+    InputBlocker.Size = UDim2.new(1, 0, 1, 0)
+    InputBlocker.BackgroundTransparency = 1
+    InputBlocker.Text = ""
+    InputBlocker.AutoButtonColor = false
+    InputBlocker.ZIndex = 1
+    InputBlocker.Parent = Splash
+    local SnowLayer = Instance.new("Frame")
+    SnowLayer.Size = UDim2.new(1, 0, 1, 0)
+    SnowLayer.BackgroundTransparency = 1
+    SnowLayer.ZIndex = 2
+    SnowLayer.Parent = Splash
+    local Flakes = {}
+    for i = 1, 45 do
+        local size = math.random(2, 5)
+        local Flake = Instance.new("Frame")
+        Flake.Size = UDim2.new(0, size, 0, size)
+        Flake.AnchorPoint = Vector2.new(0.5, 0.5)
+        Flake.BackgroundColor3 = Color3.fromRGB(255, 240, 240)
+        Flake.BackgroundTransparency = math.random(15, 55) / 100
+        Flake.BorderSizePixel = 0
+        Flake.Parent = SnowLayer
+        Corner(Flake, size)
+        Flakes[i] = {Obj = Flake, X = math.random(), Y = math.random(), Speed = 0.06 + math.random() * 0.12, Phase = math.random() * math.pi * 2, Sway = 0.005 + math.random() * 0.02}
+    end
+    local snowTime = 0
+    local SnowConn = RunService.Heartbeat:Connect(function(dt)
+        snowTime = snowTime + dt
+        for _, f in ipairs(Flakes) do
+            f.Y = f.Y + f.Speed * dt
+            if f.Y > 1.05 then
+                f.Y = -0.05
+                f.X = math.random()
+            end
+            f.Obj.Position = UDim2.new(f.X + math.sin(snowTime * 1.5 + f.Phase) * f.Sway, 0, f.Y, 0)
+        end
+    end)
+    table.insert(Library.Connections, SnowConn)
+    local Card = Instance.new("Frame")
+    Card.Size = UDim2.new(0, 300, 0, 170)
+    Card.Position = UDim2.new(0.5, 0, 0.5, 0)
+    Card.AnchorPoint = Vector2.new(0.5, 0.5)
+    Card.BackgroundColor3 = Theme.Background
+    Card.BackgroundTransparency = 0.15
+    Card.ZIndex = 3
+    Card.Parent = Splash
+    Corner(Card, 8)
+    local CardStroke = Stroke(Card, Theme.Accent, 1, 0.4)
+    RegisterTheme(CardStroke, "BorderColor")
+    local CardScale = Instance.new("UIScale")
+    CardScale.Scale = 0.85
+    CardScale.Parent = Card
+    local SplashTitle = Instance.new("TextLabel")
+    SplashTitle.Size = UDim2.new(1, -20, 0, 30)
+    SplashTitle.Position = UDim2.new(0, 10, 0, 22)
+    SplashTitle.BackgroundTransparency = 1
+    SplashTitle.Text = "Join Discord"
+    SplashTitle.TextColor3 = Theme.Accent
+    SplashTitle.Font = Config.FontBold
+    SplashTitle.TextSize = 24
+    SplashTitle.Parent = Card
+    RegisterTheme(SplashTitle, "TextColor")
+    local SplashText = Instance.new("TextLabel")
+    SplashText.Size = UDim2.new(1, -20, 0, 20)
+    SplashText.Position = UDim2.new(0, 10, 0, 58)
+    SplashText.BackgroundTransparency = 1
+    SplashText.Text = "Something New Dropping Soon👀"
+    SplashText.TextColor3 = Theme.Text
+    SplashText.Font = Config.FontMain
+    SplashText.TextSize = 14
+    SplashText.Parent = Card
+    local CopyBtn = Instance.new("TextButton")
+    CopyBtn.Size = UDim2.new(1, -60, 0, 36)
+    CopyBtn.Position = UDim2.new(0.5, 0, 1, -30)
+    CopyBtn.AnchorPoint = Vector2.new(0.5, 1)
+    CopyBtn.BackgroundColor3 = Theme.Accent
+    CopyBtn.Text = "Copy Discord"
+    CopyBtn.TextColor3 = Theme.Text
+    CopyBtn.Font = Config.FontBold
+    CopyBtn.TextSize = 14
+    CopyBtn.AutoButtonColor = false
+    CopyBtn.Parent = Card
+    Corner(CopyBtn, 6)
+    RegisterTheme(CopyBtn, "BackgroundColor")
+    local CloseBtn = Instance.new("TextButton")
+    CloseBtn.Size = UDim2.new(0, 24, 0, 24)
+    CloseBtn.Position = UDim2.new(1, -6, 0, 6)
+    CloseBtn.AnchorPoint = Vector2.new(1, 0)
+    CloseBtn.BackgroundTransparency = 1
+    CloseBtn.Text = "×"
+    CloseBtn.TextColor3 = Theme.TextDark
+    CloseBtn.Font = Config.FontBold
+    CloseBtn.TextSize = 20
+    CloseBtn.Parent = Card
+    local splashClosed = false
+    local function CloseSplash()
+        if splashClosed then return end
+        splashClosed = true
+        Tween(SplashBlur, {Size = 0}, 0.3)
+        Tween(SplashTint, {TintColor = Color3.new(1, 1, 1)}, 0.3)
+        Tween(CardScale, {Scale = 0.85}, 0.3)
+        Tween(Splash, {GroupTransparency = 1}, 0.3).Completed:Wait()
+        pcall(function() SnowConn:Disconnect() end)
+        Splash:Destroy()
+        SplashBlur:Destroy()
+        SplashTint:Destroy()
+    end
+    local cs1 = CopyBtn.MouseEnter:Connect(function() Tween(CopyBtn, {BackgroundTransparency = 0.2}, 0.15) end)
+    local cs2 = CopyBtn.MouseLeave:Connect(function() Tween(CopyBtn, {BackgroundTransparency = 0}, 0.15) end)
+    local cs3 = CopyBtn.MouseButton1Click:Connect(function()
+        copyDiscord()
+        task.spawn(CloseSplash)
+    end)
+    local cs4 = CloseBtn.MouseButton1Click:Connect(function() task.spawn(CloseSplash) end)
+    local cs5 = MainWindow:GetPropertyChangedSignal("Visible"):Connect(function()
+        if not splashClosed then SplashBlur.Enabled = MainWindow.Visible SplashTint.Enabled = MainWindow.Visible end
+    end)
+    table.insert(Library.Connections, cs1)
+    table.insert(Library.Connections, cs2)
+    table.insert(Library.Connections, cs3)
+    table.insert(Library.Connections, cs4)
+    table.insert(Library.Connections, cs5)
+    Tween(Splash, {GroupTransparency = 0}, 0.4)
+    Tween(CardScale, {Scale = 1}, 0.4, Enum.EasingStyle.Back)
+    Tween(SplashBlur, {Size = 12}, 0.4)
+    Tween(SplashTint, {TintColor = Color3.fromRGB(255, 215, 215)}, 0.4)
     MainScale.Scale = GetBaseScale()
     MainWindow.Visible = true
     return WindowObj
