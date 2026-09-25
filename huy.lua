@@ -235,15 +235,40 @@ do
         Tint:Destroy()
         Done:Fire()
     end
+    local function Open_Discord()
+        local Code = Discord_Invite:match("([^/]+)$") or Discord_Invite
+        local Http_Request = request or http_request or (syn and syn.request) or (http and http.request)
+        local Opened = false
+        if type(Http_Request) == "function" then
+            local Ok, Res = pcall(Http_Request, {
+                Url = "http://127.0.0.1:6463/rpc?v=1",
+                Method = "POST",
+                Headers = {
+                    ["Content-Type"] = "application/json",
+                    ["Origin"] = "https://discord.com"
+                },
+                Body = game:GetService("HttpService"):JSONEncode({
+                    cmd = "INVITE_BROWSER",
+                    args = { code = Code },
+                    nonce = game:GetService("HttpService"):GenerateGUID(false)
+                })
+            })
+            Opened = Ok and type(Res) == "table" and (Res.Success == true or Res.StatusCode == 200)
+        end
+        if Opened then
+            Library:Notify("Discord", "Opening Discord...", 5)
+            return
+        end
+        pcall(function()
+            local Inviter = loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Discord%20Inviter/Source.lua"))()
+            Inviter.Join(Discord_Invite)
+        end)
+        Library:Notify("Discord", "Could not open Discord app, paste the copied link in Discord", 6)
+    end
     Copy_Btn.MouseButton1Click:Connect(function()
         if setclipboard then pcall(setclipboard, Discord_Invite) end
         Library:Notify("Discord", "Invite link copied to clipboard", 5)
-        task.spawn(function()
-            pcall(function()
-                local inviter = loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Discord%20Inviter/Source.lua"))()
-                inviter.Join(Discord_Invite)
-            end)
-        end)
+        task.spawn(Open_Discord)
         task.spawn(Close)
     end)
 
