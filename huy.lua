@@ -141,7 +141,7 @@ do
     end)
 
     local Card = Instance.new("Frame")
-    Card.Size = UDim2.new(0, 320, 0, 196)
+    Card.Size = UDim2.new(0, 320, 0, 152)
     Card.Position = UDim2.new(0.5, 0, 0.5, 0)
     Card.AnchorPoint = Vector2.new(0.5, 0.5)
     Card.BackgroundColor3 = Bg
@@ -231,8 +231,7 @@ do
         Buttons[#Buttons + 1] = {Btn = Btn, Stroke = St}
         return Btn
     end
-    local Copy_Btn = Make_Button("Copy Discord", 106)
-    local Join_Btn = Make_Button("Join Our Discord", 146)
+    local Copy_Btn = Make_Button("Copy Discord", 104)
 
     local Close_Btn = Instance.new("TextButton")
     Close_Btn.Size = UDim2.new(0, 24, 0, 24)
@@ -283,11 +282,6 @@ do
         Done:Fire()
     end
     Copy_Btn.MouseButton1Click:Connect(function()
-        if setclipboard then pcall(setclipboard, Discord_Invite) end
-        Library:Notify("Discord", "Invite link copied to clipboard", 5)
-        task.spawn(Close)
-    end)
-    Join_Btn.MouseButton1Click:Connect(function()
         if setclipboard then pcall(setclipboard, Discord_Invite) end
         Library:Notify("Discord", "Invite link copied to clipboard", 5)
         task.spawn(function()
