@@ -39,6 +39,9 @@ do
 end
 Library:SetHub({
     Game = "Rivals",
+    Socials = {
+        Discord = "https://discord.gg/6S7gHAPg3A",
+    },
     UpdateLog = {
         Date = "Sept 19, 2026",
         Added = {
@@ -52,7 +55,245 @@ Library:SetHub({
         },
     },
 })
+do
+    local Discord_Invite = Library.HubConfig.Socials.Discord
+    local Tween_Service = game:GetService("TweenService")
+    local Lighting = game:GetService("Lighting")
+    local Run_Service = game:GetService("RunService")
+    local T = Library.Theme or {}
+    local F = Library.Fonts or {}
+    local Accent = T.Accent or Color3.fromHex("#ff1a1a")
+    local Bg = T.Background or Color3.fromHex("#080505")
+    local Text_Col = T.Text or Color3.new(1, 1, 1)
+    local Text_Dark = T.TextDark or Color3.fromHex("#997373")
+    local Font_Main = F.Main or Enum.Font.GothamMedium
+    local Font_Bold = F.Bold or Enum.Font.GothamBold
+
+    local function Tw(Obj, Props, Time, Style)
+        local Tween = Tween_Service:Create(Obj, TweenInfo.new(Time, Style or Enum.EasingStyle.Quart, Enum.EasingDirection.Out), Props)
+        Tween:Play()
+        return Tween
+    end
+    local function Round(Obj, R)
+        local C = Instance.new("UICorner")
+        C.CornerRadius = UDim.new(0, R)
+        C.Parent = Obj
+    end
+
+    local Blur = Instance.new("BlurEffect")
+    Blur.Name = "PhantomSplashBlur"
+    Blur.Size = 0
+    Blur.Parent = Lighting
+    local Tint = Instance.new("ColorCorrectionEffect")
+    Tint.Name = "PhantomSplashTint"
+    Tint.TintColor = Color3.new(1, 1, 1)
+    Tint.Parent = Lighting
+
+    local Gui = Instance.new("ScreenGui")
+    Gui.Name = "PhantomDiscordSplash"
+    Gui.IgnoreGuiInset = true
+    Gui.ResetOnSpawn = false
+    Gui.DisplayOrder = 1000
+    Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    local Gui_Parent = (gethui and gethui()) or nil
+    if not Gui_Parent then pcall(function() Gui_Parent = game:GetService("CoreGui") end) end
+    Gui.Parent = Gui_Parent or Players.LocalPlayer:WaitForChild("PlayerGui")
+
+    local Overlay = Instance.new("TextButton")
+    Overlay.Size = UDim2.new(1, 0, 1, 0)
+    Overlay.BackgroundColor3 = Color3.fromRGB(70, 8, 8)
+    Overlay.BackgroundTransparency = 1
+    Overlay.BorderSizePixel = 0
+    Overlay.Text = ""
+    Overlay.AutoButtonColor = false
+    Overlay.Parent = Gui
+
+    local Snow_Layer = Instance.new("Frame")
+    Snow_Layer.Size = UDim2.new(1, 0, 1, 0)
+    Snow_Layer.BackgroundTransparency = 1
+    Snow_Layer.Parent = Overlay
+    local Flakes = {}
+    for I = 1, 90 do
+        local Size = math.random(2, 6)
+        local Flake = Instance.new("Frame")
+        Flake.Size = UDim2.new(0, Size, 0, Size)
+        Flake.AnchorPoint = Vector2.new(0.5, 0.5)
+        Flake.BackgroundColor3 = Color3.fromRGB(255, 240, 240)
+        Flake.BackgroundTransparency = 1
+        Flake.BorderSizePixel = 0
+        Flake.Parent = Snow_Layer
+        Round(Flake, Size)
+        Flakes[I] = {Obj = Flake, Alpha = math.random(15, 55) / 100, X = math.random(), Y = math.random(), Speed = 0.05 + math.random() * 0.1, Phase = math.random() * math.pi * 2, Sway = 0.003 + math.random() * 0.012}
+    end
+    local Snow_Time = 0
+    local Snow_Conn = Run_Service.Heartbeat:Connect(function(Dt)
+        Snow_Time = Snow_Time + Dt
+        for _, Fl in ipairs(Flakes) do
+            Fl.Y = Fl.Y + Fl.Speed * Dt
+            if Fl.Y > 1.05 then
+                Fl.Y = -0.05
+                Fl.X = math.random()
+            end
+            Fl.Obj.Position = UDim2.new(Fl.X + math.sin(Snow_Time * 1.5 + Fl.Phase) * Fl.Sway, 0, Fl.Y, 0)
+        end
+    end)
+
+    local Card = Instance.new("Frame")
+    Card.Size = UDim2.new(0, 320, 0, 180)
+    Card.Position = UDim2.new(0.5, 0, 0.5, 0)
+    Card.AnchorPoint = Vector2.new(0.5, 0.5)
+    Card.BackgroundColor3 = Bg
+    Card.BackgroundTransparency = 1
+    Card.Parent = Overlay
+    Round(Card, 8)
+    local Card_Stroke = Instance.new("UIStroke")
+    Card_Stroke.Color = Accent
+    Card_Stroke.Transparency = 1
+    Card_Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    Card_Stroke.Parent = Card
+    local Card_Scale = Instance.new("UIScale")
+    Card_Scale.Scale = 0.85
+    Card_Scale.Parent = Card
+
+    local Title = Instance.new("TextLabel")
+    Title.Size = UDim2.new(1, -20, 0, 30)
+    Title.Position = UDim2.new(0, 10, 0, 24)
+    Title.BackgroundTransparency = 1
+    Title.Text = "Join Discord"
+    Title.TextColor3 = Accent
+    Title.TextTransparency = 1
+    Title.Font = Font_Bold
+    Title.TextSize = 26
+    Title.Parent = Card
+    local Sub = Instance.new("TextLabel")
+    Sub.Size = UDim2.new(1, -20, 0, 20)
+    Sub.Position = UDim2.new(0, 10, 0, 62)
+    Sub.BackgroundTransparency = 1
+    Sub.Text = "Something New Dropping Soon👀"
+    Sub.TextColor3 = Text_Col
+    Sub.TextTransparency = 1
+    Sub.Font = Font_Main
+    Sub.TextSize = 15
+    Sub.Parent = Card
+    local Copy_Btn = Instance.new("TextButton")
+    Copy_Btn.Size = UDim2.new(1, -60, 0, 38)
+    Copy_Btn.Position = UDim2.new(0.5, 0, 1, -30)
+    Copy_Btn.AnchorPoint = Vector2.new(0.5, 1)
+    Copy_Btn.BackgroundColor3 = Accent
+    Copy_Btn.BackgroundTransparency = 1
+    Copy_Btn.Text = "Copy Discord"
+    Copy_Btn.TextColor3 = Text_Col
+    Copy_Btn.TextTransparency = 1
+    Copy_Btn.Font = Font_Bold
+    Copy_Btn.TextSize = 15
+    Copy_Btn.AutoButtonColor = false
+    Copy_Btn.Parent = Card
+    Round(Copy_Btn, 6)
+    local Close_Btn = Instance.new("TextButton")
+    Close_Btn.Size = UDim2.new(0, 24, 0, 24)
+    Close_Btn.Position = UDim2.new(1, -6, 0, 6)
+    Close_Btn.AnchorPoint = Vector2.new(1, 0)
+    Close_Btn.BackgroundTransparency = 1
+    Close_Btn.Text = "×"
+    Close_Btn.TextColor3 = Text_Dark
+    Close_Btn.TextTransparency = 1
+    Close_Btn.Font = Font_Bold
+    Close_Btn.TextSize = 20
+    Close_Btn.Parent = Card
+
+    local function Fade(Visible, Time)
+        local K = Visible and 0 or 1
+        local function A(V) return Visible and V or 1 end
+        Tw(Overlay, {BackgroundTransparency = A(0.45)}, Time)
+        Tw(Card, {BackgroundTransparency = A(0.15)}, Time)
+        Tw(Card_Stroke, {Transparency = A(0.4)}, Time)
+        Tw(Title, {TextTransparency = K}, Time)
+        Tw(Sub, {TextTransparency = K}, Time)
+        Tw(Copy_Btn, {BackgroundTransparency = K, TextTransparency = K}, Time)
+        Tw(Close_Btn, {TextTransparency = K}, Time)
+        for _, Fl in ipairs(Flakes) do Tw(Fl.Obj, {BackgroundTransparency = A(Fl.Alpha)}, Time) end
+        Tw(Card_Scale, {Scale = Visible and 1 or 0.85}, Time, Visible and Enum.EasingStyle.Back or nil)
+        Tw(Blur, {Size = Visible and 14 or 0}, Time)
+        return Tw(Tint, {TintColor = Visible and Color3.fromRGB(255, 210, 210) or Color3.new(1, 1, 1)}, Time)
+    end
+
+    local Closed = false
+    local Done = Instance.new("BindableEvent")
+    local function Close()
+        if Closed then return end
+        Closed = true
+        Fade(false, 0.3).Completed:Wait()
+        Snow_Conn:Disconnect()
+        Gui:Destroy()
+        Blur:Destroy()
+        Tint:Destroy()
+        Done:Fire()
+    end
+    Copy_Btn.MouseEnter:Connect(function() if not Closed then Tw(Copy_Btn, {BackgroundTransparency = 0.2}, 0.15) end end)
+    Copy_Btn.MouseLeave:Connect(function() if not Closed then Tw(Copy_Btn, {BackgroundTransparency = 0}, 0.15) end end)
+    Copy_Btn.MouseButton1Click:Connect(function()
+        if setclipboard then pcall(setclipboard, Discord_Invite) end
+        Library:Notify("Discord", "Invite link copied to clipboard", 5)
+        task.spawn(Close)
+    end)
+    Close_Btn.MouseButton1Click:Connect(function() task.spawn(Close) end)
+
+    Fade(true, 0.4)
+    if not Closed then Done.Event:Wait() end
+    Done:Destroy()
+end
+
 local Window = Library:CreateWindow({Name = "PHANTOM HUB"})
+
+pcall(function()
+    local Discord_Invite = Library.HubConfig.Socials.Discord
+    local function openDiscord()
+        if setclipboard then
+            setclipboard(Discord_Invite)
+        end
+        Library:Notify("Discord", "Invite link copied to clipboard", 5)
+        pcall(function()
+            local inviter = loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Discord%20Inviter/Source.lua"))()
+            inviter.Join(Discord_Invite)
+        end)
+    end
+    local Main_Window = Library._MainWindow
+    if not Main_Window then return end
+    local Bar
+    for _, C in ipairs(Main_Window:GetChildren()) do
+        if C:IsA("Frame") and C:FindFirstChildWhichIsA("ScrollingFrame") then Bar = C break end
+    end
+    if not Bar then return end
+    local Tabs = Bar:FindFirstChildWhichIsA("ScrollingFrame")
+    Tabs.Size = UDim2.new(1, 0, 1, -172)
+    local T = Library.Theme or {}
+    local F = Library.Fonts or {}
+    local Accent = T.Accent or Color3.fromHex("#ff1a1a")
+    local Base = T.Container or Color3.fromHex("#140b0b")
+    local Hover = T.Section or Color3.fromHex("#1a0e0e")
+    local Btn = Instance.new("TextButton")
+    Btn.Name = "JoinDiscord"
+    Btn.Size = UDim2.new(1, -20, 0, 30)
+    Btn.Position = UDim2.new(0, 10, 1, -102)
+    Btn.BackgroundColor3 = Base
+    Btn.Text = "Join Discord"
+    Btn.Font = F.Bold or Enum.Font.GothamBold
+    Btn.TextSize = 13
+    Btn.TextColor3 = Accent
+    Btn.AutoButtonColor = false
+    Btn.Parent = Bar
+    local C = Instance.new("UICorner")
+    C.CornerRadius = UDim.new(0, 4)
+    C.Parent = Btn
+    local S = Instance.new("UIStroke")
+    S.Color = Accent
+    S.Transparency = 0.5
+    S.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    S.Parent = Btn
+    Btn.MouseEnter:Connect(function() Btn.BackgroundColor3 = Hover end)
+    Btn.MouseLeave:Connect(function() Btn.BackgroundColor3 = Base end)
+    Btn.MouseButton1Click:Connect(function() task.spawn(openDiscord) end)
+end)
 local Players = game:GetService("Players")
 local Run_Service = game:GetService("RunService")
 local User_Input_Service = game:GetService("UserInputService")
