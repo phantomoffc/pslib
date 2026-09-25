@@ -141,7 +141,7 @@ do
     end)
 
     local Card = Instance.new("Frame")
-    Card.Size = UDim2.new(0, 320, 0, 196)
+    Card.Size = UDim2.new(0, 300, 0, 140)
     Card.Position = UDim2.new(0.5, 0, 0.5, 0)
     Card.AnchorPoint = Vector2.new(0.5, 0.5)
     Card.BackgroundColor3 = Bg
@@ -157,51 +157,23 @@ do
     local Card_Scale = Instance.new("UIScale")
     Card_Scale.Scale = 0.85
     Card_Scale.Parent = Card
-    local Noise = Instance.new("ImageLabel")
-    Noise.Size = UDim2.new(1, 0, 1, 0)
-    Noise.BackgroundTransparency = 1
-    Noise.Image = "rbxassetid://9968344105"
-    Noise.ImageTransparency = 1
-    Noise.ScaleType = Enum.ScaleType.Tile
-    Noise.TileSize = UDim2.new(0, 100, 0, 100)
-    Noise.Parent = Card
-    Round(Noise, 6)
-
-    local Title_Bar = Instance.new("Frame")
-    Title_Bar.Size = UDim2.new(0, 3, 0, 22)
-    Title_Bar.Position = UDim2.new(0, 8, 0, 29)
-    Title_Bar.AnchorPoint = Vector2.new(0, 0.5)
-    Title_Bar.BackgroundColor3 = Accent
-    Title_Bar.BackgroundTransparency = 1
-    Title_Bar.BorderSizePixel = 0
-    Title_Bar.Parent = Card
-    Round(Title_Bar, 2)
     local Title = Instance.new("TextLabel")
-    Title.Size = UDim2.new(1, -50, 0, 30)
-    Title.Position = UDim2.new(0, 18, 0, 14)
+    Title.Size = UDim2.new(1, -36, 0, 26)
+    Title.Position = UDim2.new(0, 18, 0, 16)
     Title.BackgroundTransparency = 1
     Title.Text = "Join Discord"
     Title.TextColor3 = Accent
     Title.TextTransparency = 1
-    Title.TextXAlignment = Enum.TextXAlignment.Left
     Title.Font = Font_Bold
     Title.TextSize = 20
     Title.Parent = Card
-    local Divider = Instance.new("Frame")
-    Divider.Size = UDim2.new(1, -16, 0, 1)
-    Divider.Position = UDim2.new(0, 8, 0, 48)
-    Divider.BackgroundColor3 = Stroke_Col
-    Divider.BackgroundTransparency = 1
-    Divider.BorderSizePixel = 0
-    Divider.Parent = Card
     local Sub = Instance.new("TextLabel")
     Sub.Size = UDim2.new(1, -36, 0, 20)
-    Sub.Position = UDim2.new(0, 18, 0, 62)
+    Sub.Position = UDim2.new(0, 18, 0, 46)
     Sub.BackgroundTransparency = 1
     Sub.Text = "Something New Dropping Soon👀"
     Sub.TextColor3 = Text_Col
     Sub.TextTransparency = 1
-    Sub.TextXAlignment = Enum.TextXAlignment.Left
     Sub.Font = Font_Main
     Sub.TextSize = 14
     Sub.Parent = Card
@@ -231,22 +203,7 @@ do
         Buttons[#Buttons + 1] = {Btn = Btn, Stroke = St}
         return Btn
     end
-    local Copy_Btn = Make_Button("Copy Discord", 106)
-    local Join_Btn = Make_Button("Join Our Discord", 146)
-
-    local Close_Btn = Instance.new("TextButton")
-    Close_Btn.Size = UDim2.new(0, 24, 0, 24)
-    Close_Btn.Position = UDim2.new(1, -8, 0, 17)
-    Close_Btn.AnchorPoint = Vector2.new(1, 0)
-    Close_Btn.BackgroundTransparency = 1
-    Close_Btn.Text = "×"
-    Close_Btn.TextColor3 = Text_Dark
-    Close_Btn.TextTransparency = 1
-    Close_Btn.Font = Font_Bold
-    Close_Btn.TextSize = 20
-    Close_Btn.Parent = Card
-    Close_Btn.MouseEnter:Connect(function() Tw(Close_Btn, {TextColor3 = Accent}, 0.3) end)
-    Close_Btn.MouseLeave:Connect(function() Tw(Close_Btn, {TextColor3 = Text_Dark}, 0.3) end)
+    local Copy_Btn = Make_Button("Copy Discord", 88)
 
     local function Fade(Visible, Time)
         local K = Visible and 0 or 1
@@ -254,16 +211,12 @@ do
         Tw(Overlay, {BackgroundTransparency = A(0.45)}, Time)
         Tw(Card, {BackgroundTransparency = A(0.1)}, Time)
         Tw(Card_Stroke, {Transparency = K}, Time)
-        Tw(Noise, {ImageTransparency = A(0.9)}, Time)
-        Tw(Title_Bar, {BackgroundTransparency = K}, Time)
         Tw(Title, {TextTransparency = K}, Time)
-        Tw(Divider, {BackgroundTransparency = K}, Time)
         Tw(Sub, {TextTransparency = K}, Time)
         for _, B in ipairs(Buttons) do
             Tw(B.Btn, {BackgroundTransparency = K, TextTransparency = K}, Time)
             Tw(B.Stroke, {Transparency = A(0.5)}, Time)
         end
-        Tw(Close_Btn, {TextTransparency = K}, Time)
         for _, Fl in ipairs(Flakes) do Tw(Fl.Obj, {BackgroundTransparency = A(Fl.Alpha)}, Time) end
         Tw(Card_Scale, {Scale = Visible and 1 or 0.85}, Time, Visible and Enum.EasingStyle.Back or nil)
         Tw(Blur, {Size = Visible and 14 or 0}, Time)
@@ -285,11 +238,6 @@ do
     Copy_Btn.MouseButton1Click:Connect(function()
         if setclipboard then pcall(setclipboard, Discord_Invite) end
         Library:Notify("Discord", "Invite link copied to clipboard", 5)
-        task.spawn(Close)
-    end)
-    Join_Btn.MouseButton1Click:Connect(function()
-        if setclipboard then pcall(setclipboard, Discord_Invite) end
-        Library:Notify("Discord", "Invite link copied to clipboard", 5)
         task.spawn(function()
             pcall(function()
                 local inviter = loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Discord%20Inviter/Source.lua"))()
@@ -298,7 +246,6 @@ do
         end)
         task.spawn(Close)
     end)
-    Close_Btn.MouseButton1Click:Connect(function() task.spawn(Close) end)
 
     Fade(true, 0.4)
     if not Closed then Done.Event:Wait() end
