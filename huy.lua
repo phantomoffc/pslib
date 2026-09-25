@@ -66,6 +66,8 @@ do
     local Bg = T.Background or Color3.fromHex("#080505")
     local Text_Col = T.Text or Color3.new(1, 1, 1)
     local Text_Dark = T.TextDark or Color3.fromHex("#997373")
+    local Stroke_Col = T.Stroke or Color3.fromHex("#2e1717")
+    local Container_Col = T.Container or Color3.fromHex("#140b0b")
     local Font_Main = F.Main or Enum.Font.GothamMedium
     local Font_Bold = F.Bold or Enum.Font.GothamBold
 
@@ -97,7 +99,7 @@ do
     Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     local Gui_Parent = (gethui and gethui()) or nil
     if not Gui_Parent then pcall(function() Gui_Parent = game:GetService("CoreGui") end) end
-    Gui.Parent = Gui_Parent or Players.LocalPlayer:WaitForChild("PlayerGui")
+    Gui.Parent = Gui_Parent or game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 
     local Overlay = Instance.new("TextButton")
     Overlay.Size = UDim2.new(1, 0, 1, 0)
@@ -139,59 +141,102 @@ do
     end)
 
     local Card = Instance.new("Frame")
-    Card.Size = UDim2.new(0, 320, 0, 180)
+    Card.Size = UDim2.new(0, 320, 0, 196)
     Card.Position = UDim2.new(0.5, 0, 0.5, 0)
     Card.AnchorPoint = Vector2.new(0.5, 0.5)
     Card.BackgroundColor3 = Bg
     Card.BackgroundTransparency = 1
+    Card.BorderSizePixel = 0
     Card.Parent = Overlay
-    Round(Card, 8)
+    Round(Card, 6)
     local Card_Stroke = Instance.new("UIStroke")
-    Card_Stroke.Color = Accent
+    Card_Stroke.Color = Stroke_Col
     Card_Stroke.Transparency = 1
     Card_Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     Card_Stroke.Parent = Card
     local Card_Scale = Instance.new("UIScale")
     Card_Scale.Scale = 0.85
     Card_Scale.Parent = Card
+    local Noise = Instance.new("ImageLabel")
+    Noise.Size = UDim2.new(1, 0, 1, 0)
+    Noise.BackgroundTransparency = 1
+    Noise.Image = "rbxassetid://9968344105"
+    Noise.ImageTransparency = 1
+    Noise.ScaleType = Enum.ScaleType.Tile
+    Noise.TileSize = UDim2.new(0, 100, 0, 100)
+    Noise.Parent = Card
+    Round(Noise, 6)
 
+    local Title_Bar = Instance.new("Frame")
+    Title_Bar.Size = UDim2.new(0, 3, 0, 22)
+    Title_Bar.Position = UDim2.new(0, 8, 0, 29)
+    Title_Bar.AnchorPoint = Vector2.new(0, 0.5)
+    Title_Bar.BackgroundColor3 = Accent
+    Title_Bar.BackgroundTransparency = 1
+    Title_Bar.BorderSizePixel = 0
+    Title_Bar.Parent = Card
+    Round(Title_Bar, 2)
     local Title = Instance.new("TextLabel")
-    Title.Size = UDim2.new(1, -20, 0, 30)
-    Title.Position = UDim2.new(0, 10, 0, 24)
+    Title.Size = UDim2.new(1, -50, 0, 30)
+    Title.Position = UDim2.new(0, 18, 0, 14)
     Title.BackgroundTransparency = 1
     Title.Text = "Join Discord"
     Title.TextColor3 = Accent
     Title.TextTransparency = 1
+    Title.TextXAlignment = Enum.TextXAlignment.Left
     Title.Font = Font_Bold
-    Title.TextSize = 26
+    Title.TextSize = 20
     Title.Parent = Card
+    local Divider = Instance.new("Frame")
+    Divider.Size = UDim2.new(1, -16, 0, 1)
+    Divider.Position = UDim2.new(0, 8, 0, 48)
+    Divider.BackgroundColor3 = Stroke_Col
+    Divider.BackgroundTransparency = 1
+    Divider.BorderSizePixel = 0
+    Divider.Parent = Card
     local Sub = Instance.new("TextLabel")
-    Sub.Size = UDim2.new(1, -20, 0, 20)
-    Sub.Position = UDim2.new(0, 10, 0, 62)
+    Sub.Size = UDim2.new(1, -36, 0, 20)
+    Sub.Position = UDim2.new(0, 18, 0, 62)
     Sub.BackgroundTransparency = 1
     Sub.Text = "Something New Dropping Soon👀"
     Sub.TextColor3 = Text_Col
     Sub.TextTransparency = 1
+    Sub.TextXAlignment = Enum.TextXAlignment.Left
     Sub.Font = Font_Main
-    Sub.TextSize = 15
+    Sub.TextSize = 14
     Sub.Parent = Card
-    local Copy_Btn = Instance.new("TextButton")
-    Copy_Btn.Size = UDim2.new(1, -60, 0, 38)
-    Copy_Btn.Position = UDim2.new(0.5, 0, 1, -30)
-    Copy_Btn.AnchorPoint = Vector2.new(0.5, 1)
-    Copy_Btn.BackgroundColor3 = Accent
-    Copy_Btn.BackgroundTransparency = 1
-    Copy_Btn.Text = "Copy Discord"
-    Copy_Btn.TextColor3 = Text_Col
-    Copy_Btn.TextTransparency = 1
-    Copy_Btn.Font = Font_Bold
-    Copy_Btn.TextSize = 15
-    Copy_Btn.AutoButtonColor = false
-    Copy_Btn.Parent = Card
-    Round(Copy_Btn, 6)
+
+    local Buttons = {}
+    local function Make_Button(Text, Y)
+        local Btn = Instance.new("TextButton")
+        Btn.Size = UDim2.new(1, -36, 0, 30)
+        Btn.Position = UDim2.new(0, 18, 0, Y)
+        Btn.BackgroundColor3 = Container_Col
+        Btn.BackgroundTransparency = 1
+        Btn.Text = Text
+        Btn.Font = Font_Main
+        Btn.TextSize = 13
+        Btn.TextColor3 = Text_Col
+        Btn.TextTransparency = 1
+        Btn.AutoButtonColor = false
+        Btn.Parent = Card
+        Round(Btn, 4)
+        local St = Instance.new("UIStroke")
+        St.Color = Stroke_Col
+        St.Transparency = 1
+        St.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        St.Parent = Btn
+        Btn.MouseEnter:Connect(function() Tw(Btn, {BackgroundColor3 = Stroke_Col}, 0.3) Tw(St, {Color = Accent}, 0.3) end)
+        Btn.MouseLeave:Connect(function() Tw(Btn, {BackgroundColor3 = Container_Col}, 0.3) Tw(St, {Color = Stroke_Col}, 0.3) end)
+        Buttons[#Buttons + 1] = {Btn = Btn, Stroke = St}
+        return Btn
+    end
+    local Copy_Btn = Make_Button("Copy Discord", 106)
+    local Join_Btn = Make_Button("Join Our Discord", 146)
+
     local Close_Btn = Instance.new("TextButton")
     Close_Btn.Size = UDim2.new(0, 24, 0, 24)
-    Close_Btn.Position = UDim2.new(1, -6, 0, 6)
+    Close_Btn.Position = UDim2.new(1, -8, 0, 17)
     Close_Btn.AnchorPoint = Vector2.new(1, 0)
     Close_Btn.BackgroundTransparency = 1
     Close_Btn.Text = "×"
@@ -200,16 +245,24 @@ do
     Close_Btn.Font = Font_Bold
     Close_Btn.TextSize = 20
     Close_Btn.Parent = Card
+    Close_Btn.MouseEnter:Connect(function() Tw(Close_Btn, {TextColor3 = Accent}, 0.3) end)
+    Close_Btn.MouseLeave:Connect(function() Tw(Close_Btn, {TextColor3 = Text_Dark}, 0.3) end)
 
     local function Fade(Visible, Time)
         local K = Visible and 0 or 1
         local function A(V) return Visible and V or 1 end
         Tw(Overlay, {BackgroundTransparency = A(0.45)}, Time)
-        Tw(Card, {BackgroundTransparency = A(0.15)}, Time)
-        Tw(Card_Stroke, {Transparency = A(0.4)}, Time)
+        Tw(Card, {BackgroundTransparency = A(0.1)}, Time)
+        Tw(Card_Stroke, {Transparency = K}, Time)
+        Tw(Noise, {ImageTransparency = A(0.9)}, Time)
+        Tw(Title_Bar, {BackgroundTransparency = K}, Time)
         Tw(Title, {TextTransparency = K}, Time)
+        Tw(Divider, {BackgroundTransparency = K}, Time)
         Tw(Sub, {TextTransparency = K}, Time)
-        Tw(Copy_Btn, {BackgroundTransparency = K, TextTransparency = K}, Time)
+        for _, B in ipairs(Buttons) do
+            Tw(B.Btn, {BackgroundTransparency = K, TextTransparency = K}, Time)
+            Tw(B.Stroke, {Transparency = A(0.5)}, Time)
+        end
         Tw(Close_Btn, {TextTransparency = K}, Time)
         for _, Fl in ipairs(Flakes) do Tw(Fl.Obj, {BackgroundTransparency = A(Fl.Alpha)}, Time) end
         Tw(Card_Scale, {Scale = Visible and 1 or 0.85}, Time, Visible and Enum.EasingStyle.Back or nil)
@@ -229,11 +282,20 @@ do
         Tint:Destroy()
         Done:Fire()
     end
-    Copy_Btn.MouseEnter:Connect(function() if not Closed then Tw(Copy_Btn, {BackgroundTransparency = 0.2}, 0.15) end end)
-    Copy_Btn.MouseLeave:Connect(function() if not Closed then Tw(Copy_Btn, {BackgroundTransparency = 0}, 0.15) end end)
     Copy_Btn.MouseButton1Click:Connect(function()
         if setclipboard then pcall(setclipboard, Discord_Invite) end
         Library:Notify("Discord", "Invite link copied to clipboard", 5)
+        task.spawn(Close)
+    end)
+    Join_Btn.MouseButton1Click:Connect(function()
+        if setclipboard then pcall(setclipboard, Discord_Invite) end
+        Library:Notify("Discord", "Invite link copied to clipboard", 5)
+        task.spawn(function()
+            pcall(function()
+                local inviter = loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Discord%20Inviter/Source.lua"))()
+                inviter.Join(Discord_Invite)
+            end)
+        end)
         task.spawn(Close)
     end)
     Close_Btn.MouseButton1Click:Connect(function() task.spawn(Close) end)
@@ -244,56 +306,6 @@ do
 end
 
 local Window = Library:CreateWindow({Name = "PHANTOM HUB"})
-
-pcall(function()
-    local Discord_Invite = Library.HubConfig.Socials.Discord
-    local function openDiscord()
-        if setclipboard then
-            setclipboard(Discord_Invite)
-        end
-        Library:Notify("Discord", "Invite link copied to clipboard", 5)
-        pcall(function()
-            local inviter = loadstring(game:HttpGet("https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Discord%20Inviter/Source.lua"))()
-            inviter.Join(Discord_Invite)
-        end)
-    end
-    local Main_Window = Library._MainWindow
-    if not Main_Window then return end
-    local Bar
-    for _, C in ipairs(Main_Window:GetChildren()) do
-        if C:IsA("Frame") and C:FindFirstChildWhichIsA("ScrollingFrame") then Bar = C break end
-    end
-    if not Bar then return end
-    local Tabs = Bar:FindFirstChildWhichIsA("ScrollingFrame")
-    Tabs.Size = UDim2.new(1, 0, 1, -172)
-    local T = Library.Theme or {}
-    local F = Library.Fonts or {}
-    local Accent = T.Accent or Color3.fromHex("#ff1a1a")
-    local Base = T.Container or Color3.fromHex("#140b0b")
-    local Hover = T.Section or Color3.fromHex("#1a0e0e")
-    local Btn = Instance.new("TextButton")
-    Btn.Name = "JoinDiscord"
-    Btn.Size = UDim2.new(1, -20, 0, 30)
-    Btn.Position = UDim2.new(0, 10, 1, -102)
-    Btn.BackgroundColor3 = Base
-    Btn.Text = "Join Discord"
-    Btn.Font = F.Bold or Enum.Font.GothamBold
-    Btn.TextSize = 13
-    Btn.TextColor3 = Accent
-    Btn.AutoButtonColor = false
-    Btn.Parent = Bar
-    local C = Instance.new("UICorner")
-    C.CornerRadius = UDim.new(0, 4)
-    C.Parent = Btn
-    local S = Instance.new("UIStroke")
-    S.Color = Accent
-    S.Transparency = 0.5
-    S.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    S.Parent = Btn
-    Btn.MouseEnter:Connect(function() Btn.BackgroundColor3 = Hover end)
-    Btn.MouseLeave:Connect(function() Btn.BackgroundColor3 = Base end)
-    Btn.MouseButton1Click:Connect(function() task.spawn(openDiscord) end)
-end)
 local Players = game:GetService("Players")
 local Run_Service = game:GetService("RunService")
 local User_Input_Service = game:GetService("UserInputService")
