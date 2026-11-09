@@ -85,6 +85,14 @@ local Themes = {
 		AccentText = "#1b0e04",
 		Success = "#8fd86f", Warning = "#ffc455", Danger = "#ff5f5f",
 	},
+	["Christmas"] = {
+		Background = "#0a110e", Sidebar = "#0d1612", Topbar = "#0f1914",
+		Section = "#121e19", Container = "#192822", Stroke = "#25382f",
+		Accent = "#e5484d", Accent2 = "#3fbf7f",
+		Text = "#f3efe7", TextDark = "#9fb1a7", TextMuted = "#63756b",
+		AccentText = "#ffffff",
+		Success = "#4fcf8a", Warning = "#f2c14e", Danger = "#ff6b6b",
+	},
 	["Phantom Red"] = {
 		Background = "#0b0707", Sidebar = "#100909", Topbar = "#120a0a",
 		Section = "#170d0d", Container = "#1f1212", Stroke = "#321b1b",
@@ -142,7 +150,7 @@ local Themes = {
 		Success = "#6fdcb4", Warning = "#ffd06a", Danger = "#ff6f7d",
 	},
 }
-local ThemeOrder = {"Halloween", "Phantom Red", "Midnight", "Emerald", "Royal Purple", "Graphite", "Solar", "Frost"}
+local ThemeOrder = {"Halloween", "Christmas", "Phantom Red", "Midnight", "Emerald", "Royal Purple", "Graphite", "Solar", "Frost"}
 local ThemeKeys = {"Background", "Sidebar", "Topbar", "Section", "Container", "Stroke", "Accent", "Accent2", "Text", "TextDark", "TextMuted", "AccentText", "Success", "Warning", "Danger"}
 for _, palette in pairs(Themes) do
 	for k, v in pairs(palette) do
@@ -320,6 +328,10 @@ local function New(class, props)
 		inst.AutomaticCanvasSize = Enum.AutomaticSize.Y
 		inst.ScrollingDirection = Enum.ScrollingDirection.Y
 		if not (themeMap and themeMap.ScrollBarImageColor3) then ThemeBind(inst, {ScrollBarImageColor3 = "Accent"}) end
+	end
+	-- text/image/scroll objects start transparent, but if a background color is given they should show it
+	if props.BackgroundTransparency == nil and inst:IsA("GuiObject") and (props.BackgroundColor3 ~= nil or (themeMap and themeMap.BackgroundColor3 ~= nil)) then
+		inst.BackgroundTransparency = 0
 	end
 	for k, v in pairs(props) do
 		if k ~= "Parent" and k ~= "Theme" then inst[k] = v end
@@ -691,6 +703,47 @@ local function BuildHalloweenDecor(win, top)
 	Loop(GhostFloat, {Position = UDim2.new(1, -96, 1, -56)}, 3.6)
 	Loop(Ghost, {Rotation = 7}, 2.6)
 	Loop(Ghost, {ImageTransparency = 0.9}, 3.1)
+	return Decor
+end
+
+-- gentle snowfall drawn over the window for the Christmas theme
+local function BuildChristmasDecor(win, top)
+	local Decor = New("Frame", {Name = "SeasonDecor", Size = UDim2.new(1, 0, 1, -top), Position = UDim2.fromOffset(0, top), BackgroundTransparency = 1, ClipsDescendants = true, ZIndex = 15, Parent = win})
+	local flakes = {}
+	local rng = Random.new()
+	for i = 1, 34 do
+		local size = rng:NextNumber(2, 4.5)
+		local f = New("Frame", {
+			Size = UDim2.fromOffset(size, size),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundColor3 = Color3.new(1, 1, 1),
+			BackgroundTransparency = rng:NextNumber(0.45, 0.8),
+			Parent = Decor,
+		})
+		Corner(f, 3)
+		flakes[i] = {
+			Frame = f,
+			X = rng:NextNumber(0, 1),
+			Y = rng:NextNumber(-0.1, 1),
+			Speed = rng:NextNumber(0.03, 0.08) * (size / 3),
+			Sway = rng:NextNumber(0.004, 0.012),
+			Phase = rng:NextNumber(0, math.pi * 2),
+		}
+	end
+	local conn = RunService.RenderStepped:Connect(function(dt)
+		if not Decor.Parent or not Library.Open then return end
+		local t = os.clock()
+		for _, fl in ipairs(flakes) do
+			fl.Y += fl.Speed * dt
+			if fl.Y > 1.05 then
+				fl.Y = -0.05
+				fl.X = math.random()
+			end
+			fl.Frame.Position = UDim2.fromScale(fl.X + math.sin(t * 0.8 + fl.Phase) * fl.Sway, fl.Y)
+		end
+	end)
+	table.insert(Library.Connections, conn)
+	Decor.Destroying:Connect(function() conn:Disconnect() end)
 	return Decor
 end
 
@@ -1122,7 +1175,7 @@ end
 local function BuildTooltip()
 	local Gui = New("ScreenGui", {Name = "PhantomTooltip", IgnoreGuiInset = true, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, DisplayOrder = 100, ResetOnSpawn = false, Parent = GetParent()})
 	local Frame = New("Frame", {Size = UDim2.fromOffset(0, 0), AutomaticSize = Enum.AutomaticSize.XY, BackgroundTransparency = 1, Visible = false, Theme = {BackgroundColor3 = "Topbar"}, Parent = Gui})
-	Corner(Frame, 6)
+	Corner(Frame, 4)
 	local St = Stroke(Frame, "Stroke", 1)
 	Padding(Frame, 6, 10, 6, 10)
 	local Label = New("TextLabel", {Size = UDim2.fromOffset(0, 0), AutomaticSize = Enum.AutomaticSize.XY, TextSize = 13, TextWrapped = true, TextTransparency = 1, Parent = Frame})
@@ -1201,10 +1254,10 @@ function Library:Notify(title, text, duration, kind)
 
 	local Slot = New("Frame", {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1, LayoutOrder = NotifyOrder, Parent = Holder})
 	local Card = New("TextButton", {Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, Position = UDim2.new(1, 40, 0, 0), BackgroundTransparency = 0.03, Theme = {BackgroundColor3 = "Background"}, Parent = Slot})
-	Corner(Card, 8)
+	Corner(Card, 5)
 	Stroke(Card, "Stroke", 0)
 	local IconBg = New("Frame", {Size = UDim2.fromOffset(28, 28), Position = UDim2.fromOffset(12, 10), Theme = {BackgroundColor3 = function() return Theme.Section:Lerp(Theme[colorKey], 0.18) end}, Parent = Card})
-	Corner(IconBg, 7)
+	Corner(IconBg, 4)
 	IconImage(IconBg, NotifyIcons[level], 16, {Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), Theme = {ImageColor3 = colorKey}})
 	local Body = New("Frame", {Size = UDim2.new(1, -62, 0, 0), Position = UDim2.fromOffset(50, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Parent = Card})
 	Padding(Body, 9, 0, 12, 0)
@@ -1239,7 +1292,7 @@ end
 function Library:InitWatermark()
 	local Gui = New("ScreenGui", {Name = "PhantomWatermark", IgnoreGuiInset = true, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, ResetOnSpawn = false, Enabled = not Library.UIHidden, Parent = GetParent()})
 	local Frame = New("Frame", {Size = UDim2.fromOffset(0, 32), AutomaticSize = Enum.AutomaticSize.X, Position = UDim2.new(1, -16, 0, 12), AnchorPoint = Vector2.new(1, 0), BackgroundTransparency = 0.04, Active = true, Visible = Library.WatermarkEnabled, Theme = {BackgroundColor3 = "Background"}, Parent = Gui})
-	Corner(Frame, 8)
+	Corner(Frame, 5)
 	Stroke(Frame, "Stroke", 0)
 	local Row = New("Frame", {Size = UDim2.fromOffset(0, 32), AutomaticSize = Enum.AutomaticSize.X, BackgroundTransparency = 1, Parent = Frame})
 	Padding(Row, 0, 12, 0, 12)
@@ -1324,7 +1377,7 @@ function Library:CreateKeybindList()
 	if Library.KeybindList then return end
 	local Screen = New("ScreenGui", {Name = "PrismaKeybinds", IgnoreGuiInset = true, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, ResetOnSpawn = false, Enabled = not Library.UIHidden, Parent = GetParent()})
 	local Frame = New("Frame", {Size = UDim2.fromOffset(IsTouchOnly() and 200 or 190, 0), AutomaticSize = Enum.AutomaticSize.Y, Position = UDim2.new(0, 16, 0.3, 0), BackgroundTransparency = 0.04, Active = true, Visible = false, Theme = {BackgroundColor3 = "Background"}, Parent = Screen})
-	Corner(Frame, 8)
+	Corner(Frame, 5)
 	Stroke(Frame, "Stroke", 0)
 	Padding(Frame, 0, 0, 6, 0)
 	ListLayout(Frame, 0)
@@ -1341,12 +1394,12 @@ end
 
 local function CreateBindRow(name, entry)
 	local Row = New("TextButton", {Name = name, Size = UDim2.new(1, 0, 0, 24), BackgroundTransparency = 1, Visible = false, Theme = {BackgroundColor3 = "Container"}, Parent = Library.KeybindList.Container})
-	Corner(Row, 5)
+	Corner(Row, 3)
 	local Dot = New("Frame", {Size = UDim2.fromOffset(6, 6), Position = UDim2.new(0, 8, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), Theme = {BackgroundColor3 = "TextMuted"}, Parent = Row})
 	Corner(Dot, 3)
 	local LName = New("TextLabel", {Text = name, TextSize = 13, Size = UDim2.new(1, -84, 1, 0), Position = UDim2.fromOffset(22, 0), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Theme = {TextColor3 = "TextDark"}, Parent = Row})
 	local LKey = New("TextLabel", {Font = Config.FontBold, TextSize = 11, Size = UDim2.fromOffset(0, 18), AutomaticSize = Enum.AutomaticSize.X, Position = UDim2.new(1, -6, 0.5, 0), AnchorPoint = Vector2.new(1, 0.5), BackgroundTransparency = 0, Theme = {BackgroundColor3 = "Field", TextColor3 = "TextDark"}, Parent = Row})
-	Corner(LKey, 4)
+	Corner(LKey, 3)
 	Padding(LKey, 0, 6, 0, 6)
 	entry.Row, entry.Dot, entry.NameLabel, entry.KeyLabel = Row, Dot, LName, LKey
 	Track(Row.MouseButton1Click, function()
@@ -1401,11 +1454,11 @@ function Library:CreateConsole()
 
 	local Screen = New("ScreenGui", {Name = "PhantomConsole", IgnoreGuiInset = true, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, ResetOnSpawn = false, Enabled = not Library.UIHidden, Parent = GetParent()})
 	local Frame = New("Frame", {Name = "Console", Size = UDim2.fromOffset(width, height), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0, 20 + width / 2, 1, -(20 + height / 2)), Active = true, ClipsDescendants = true, Visible = false, BackgroundTransparency = 0.03, Theme = {BackgroundColor3 = "Background"}, Parent = Screen})
-	Corner(Frame, 8)
+	Corner(Frame, 5)
 	Stroke(Frame, "Stroke", 0)
 
 	local Header = New("Frame", {Size = UDim2.new(1, 0, 0, HEADER_H), Active = true, Theme = {BackgroundColor3 = "Topbar"}, Parent = Frame})
-	Corner(Header, 8)
+	Corner(Header, 5)
 	local HeaderFill = New("Frame", {Size = UDim2.new(1, 0, 0, 8), Position = UDim2.new(0, 0, 1, -8), Theme = {BackgroundColor3 = "Topbar"}, Parent = Header})
 	local Divider = New("Frame", {Size = UDim2.new(1, 0, 0, 1), Position = UDim2.fromOffset(0, HEADER_H), Theme = {BackgroundColor3 = "Stroke"}, Parent = Frame})
 	MakeDraggable(Header, Frame)
@@ -1533,7 +1586,7 @@ end
 
 local function SearchField(parent, placeholder, order, onChanged)
 	local Box = New("Frame", {Size = UDim2.new(1, 0, 0, 26), LayoutOrder = order, Theme = {BackgroundColor3 = "Field"}, Parent = parent})
-	Corner(Box, 5)
+	Corner(Box, 3)
 	local St = Stroke(Box, "Stroke", 1)
 	IconImage(Box, "search", 12, {Position = UDim2.new(0, 8, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), Theme = {ImageColor3 = "TextMuted"}})
 	local Input = New("TextBox", {Size = UDim2.new(1, -30, 1, 0), Position = UDim2.fromOffset(26, 0), PlaceholderText = placeholder, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, Parent = Box})
@@ -1561,7 +1614,7 @@ local function KeyChip(parent, props)
 	props.BackgroundTransparency = 0
 	props.Theme = props.Theme or {BackgroundColor3 = "Field", TextColor3 = "TextDark"}
 	local chip = New("TextButton", props)
-	Corner(chip, 5)
+	Corner(chip, 3)
 	Padding(chip, 0, 8, 0, 8)
 	New("UISizeConstraint", {MinSize = Vector2.new(30, 0), Parent = chip})
 	local st = Stroke(chip, "Stroke", 0.2)
@@ -1578,7 +1631,7 @@ local function MakeListItem(parent, text, order, height)
 		BackgroundColor3 = function() return b:GetAttribute("Sel") and Theme.AccentSoft or Theme.Hover end,
 		TextColor3 = function() return b:GetAttribute("Sel") and Theme.Text or Theme.TextDark end,
 	})
-	Corner(b, 5)
+	Corner(b, 3)
 	Padding(b, 0, 8, 0, 10)
 	Track(b.MouseEnter, function()
 		if not b:GetAttribute("Sel") then Tween(b, {BackgroundTransparency = 0.3, TextColor3 = Theme.Text}, 0.15) end
@@ -1608,7 +1661,7 @@ local function ActionButton(parent, text, primary, props)
 	props.Parent = parent
 	props.Theme = primary and {BackgroundColor3 = "Accent", TextColor3 = "AccentText"} or {BackgroundColor3 = "Container", TextColor3 = "Text"}
 	local b = New("TextButton", props)
-	Corner(b, 6)
+	Corner(b, 4)
 	if primary then
 		Track(b.MouseEnter, function() Tween(b, {BackgroundColor3 = Theme.Accent:Lerp(Theme.Text, 0.15)}, 0.15) end)
 		Track(b.MouseLeave, function() Tween(b, {BackgroundColor3 = Theme.Accent}, 0.25) end)
@@ -1626,7 +1679,7 @@ local function CreatePreviewController(VP, Cam)
 	ListLayout(ZoomBox, 4)
 	local function ZoomBtn(txt, order, delta)
 		local b = New("TextButton", {Size = UDim2.fromOffset(26, 26), Text = txt, TextSize = 16, Font = Config.FontBold, BackgroundTransparency = 0.2, LayoutOrder = order, ZIndex = 6, Theme = {BackgroundColor3 = "Container"}, Parent = ZoomBox})
-		Corner(b, 6)
+		Corner(b, 4)
 		Interactive(b, Stroke(b, "Stroke", 1))
 		Track(b.MouseButton1Click, function()
 			ctrl.TargetZoom = math.clamp(ctrl.TargetZoom + delta, 0.4, 3)
@@ -1683,7 +1736,7 @@ local function CreatePreviewController(VP, Cam)
 		pcall(function()
 			local cf, size = model:GetBoundingBox()
 			local center = cf.Position
-			local dist = math.max(size.X, size.Y, size.Z, 1) * 2.2 * ctrl.Zoom
+			local dist = math.max(size.X, size.Y, size.Z, 1) * 2.8 * ctrl.Zoom
 			local cp = math.cos(ctrl.Pitch)
 			local camPos = center + Vector3.new(math.cos(ctrl.Angle) * dist * cp, math.sin(ctrl.Pitch) * dist + size.Y * 0.1, math.sin(ctrl.Angle) * dist * cp)
 			Cam.CFrame = CFrame.lookAt(camPos, center)
@@ -1715,7 +1768,7 @@ local function CreateDropdownElement(text, flag, options, default, tooltipText, 
 	local HEAD = 36
 	local isOpen = false
 	local Holder = New("Frame", {Size = UDim2.new(1, 0, 0, HEAD), ClipsDescendants = true, LayoutOrder = layoutOrder or 0, Theme = {BackgroundColor3 = "Container"}, Parent = customParent or parentFrame})
-	Corner(Holder, 6)
+	Corner(Holder, 4)
 	local HStroke = Stroke(Holder, "Stroke", 1)
 	local Header = New("TextButton", {Size = UDim2.new(1, 0, 0, HEAD), Parent = Holder})
 	New("TextLabel", {Text = text, Size = UDim2.new(0.5, -12, 1, 0), Position = UDim2.fromOffset(12, 0), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Theme = {TextColor3 = customParent and "TextDark" or "Text"}, Parent = Header})
@@ -1790,7 +1843,7 @@ local function CreateDropdownElement(text, flag, options, default, tooltipText, 
 		for i, opt in ipairs(options) do
 			local sel = false
 			local Row = New("TextButton", {Size = UDim2.new(1, 0, 0, 28), BackgroundTransparency = 1, LayoutOrder = i, Theme = {BackgroundColor3 = "Hover"}, Parent = ListFrame})
-			Corner(Row, 5)
+			Corner(Row, 3)
 			local Check = New("Frame", {Size = UDim2.fromOffset(6, 6), Position = UDim2.new(0, 10, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), BackgroundTransparency = 1, Theme = {BackgroundColor3 = "Accent"}, Parent = Row})
 			Corner(Check, 3)
 			local Txt = New("TextLabel", {Text = tostring(opt), TextSize = 13, Size = UDim2.new(1, -34, 1, 0), Position = UDim2.fromOffset(10, 0), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Theme = {TextColor3 = function() return sel and Theme.Text or Theme.TextDark end}, Parent = Row})
@@ -1896,12 +1949,12 @@ local function CreateSliderElement(text, flag, min, max, default, increment, too
 	local range = max - min
 
 	local Frame = New("Frame", {Size = UDim2.new(1, 0, 0, compact and 44 or 50), LayoutOrder = layoutOrder or 0, Theme = {BackgroundColor3 = "Container"}, Parent = parentFrame})
-	Corner(Frame, 6)
+	Corner(Frame, 4)
 	local St = Stroke(Frame, "Stroke", 1)
 	if addItem then addItem(text, Frame) end
 	New("TextLabel", {Text = text, Size = UDim2.new(1, -90, 0, 20), Position = UDim2.fromOffset(12, compact and 5 or 7), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Theme = {TextColor3 = compact and "TextDark" or "Text"}, Parent = Frame})
 	local ValBox = New("TextBox", {Text = FormatNumber(val, increment), Size = UDim2.fromOffset(54, 20), Position = UDim2.new(1, -10, 0, compact and 5 or 7), AnchorPoint = Vector2.new(1, 0), Font = Config.FontBold, TextSize = 13, BackgroundTransparency = 0, Theme = {BackgroundColor3 = "Field"}, Parent = Frame})
-	Corner(ValBox, 5)
+	Corner(ValBox, 3)
 	local Bar = New("Frame", {Size = UDim2.new(1, -24, 0, 4), Position = UDim2.new(0, 12, 1, compact and -11 or -13), Theme = {BackgroundColor3 = "Field"}, Parent = Frame})
 	Corner(Bar, 2)
 	local ratio = range > 0 and (val - min) / range or 0
@@ -1987,7 +2040,7 @@ end
 
 local function CreateSectionFrame(text, parent, order)
 	local Container = New("Frame", {Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = order or 0, Theme = {BackgroundColor3 = "Section"}, Parent = parent})
-	Corner(Container, 8)
+	Corner(Container, 5)
 	Stroke(Container, "Stroke", 1)
 	Padding(Container, 10, 10, 10, 10)
 	ListLayout(Container, 8)
@@ -2044,7 +2097,7 @@ local function AttachElements(Section, Content, ctx)
 	function Section:Row(text, value)
 		local RowObj = {Value = tostring(value or "")}
 		local Frame = New("Frame", {Size = UDim2.new(1, 0, 0, 30), LayoutOrder = NextOrder(), Theme = {BackgroundColor3 = "Container"}, Parent = Content})
-		Corner(Frame, 6)
+		Corner(Frame, 4)
 		AddItem(text, Frame)
 		New("TextLabel", {Text = text, TextSize = 13, Size = UDim2.new(0.45, -12, 1, 0), Position = UDim2.fromOffset(12, 0), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Theme = {TextColor3 = "TextDark"}, Parent = Frame})
 		local Val = New("TextLabel", {Text = RowObj.Value, Font = Config.FontBold, TextSize = 13, Size = UDim2.new(0.55, -12, 1, 0), Position = UDim2.new(0.45, 0, 0, 0), TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd, Parent = Frame})
@@ -2057,7 +2110,7 @@ local function AttachElements(Section, Content, ctx)
 
 	function Section:Button(text, tooltipText, callback)
 		local Btn = New("TextButton", {Size = UDim2.new(1, 0, 0, 34), Text = text, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, ClipsDescendants = true, LayoutOrder = NextOrder(), Theme = {BackgroundColor3 = "Container"}, Parent = Content})
-		Corner(Btn, 6)
+		Corner(Btn, 4)
 		Padding(Btn, 0, 30, 0, 12)
 		AddItem(text, Btn)
 		local St = Stroke(Btn, "Stroke", 1)
@@ -2091,7 +2144,7 @@ local function AttachElements(Section, Content, ctx)
 
 		local function OffText() return Theme.Text:Lerp(Theme.TextDark, 0.35) end
 		local Btn = New("TextButton", {Size = UDim2.new(1, 0, 0, 36), ClipsDescendants = true, LayoutOrder = NextOrder(), Theme = {BackgroundColor3 = "Container"}, Parent = Content})
-		Corner(Btn, 6)
+		Corner(Btn, 4)
 		AddItem(text, Btn)
 		local BStroke = Stroke(Btn, function() return toggled and Theme.StrokeHover or Theme.Stroke end, 1)
 		local Label = New("TextLabel", {Text = text, Size = UDim2.new(1, -64, 1, 0), Position = UDim2.fromOffset(12, 0), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Theme = {TextColor3 = function() return toggled and Theme.Text or OffText() end}, Parent = Btn})
@@ -2293,7 +2346,7 @@ local function AttachElements(Section, Content, ctx)
 
 		function ToggleObj:AddButton(txt, cb)
 			local SBtn = New("TextButton", {Size = UDim2.new(1, 0, 0, 30), Text = txt, TextSize = 13, ClipsDescendants = true, LayoutOrder = SubOrder(), Theme = {BackgroundColor3 = "Field"}, Parent = Inner})
-			Corner(SBtn, 6)
+			Corner(SBtn, 4)
 			Interactive(SBtn, Stroke(SBtn, "Stroke", 1), "Field")
 			Track(SBtn.MouseButton1Click, WrapCallback(txt, cb, false))
 			if toggled then ToggleAnim() end
@@ -2331,7 +2384,7 @@ local function AttachElements(Section, Content, ctx)
 		Library.Flags[flag] = {Key = key, Mode = kMode}
 
 		local Frame = New("Frame", {Size = UDim2.new(1, 0, 0, 36), LayoutOrder = NextOrder(), Theme = {BackgroundColor3 = "Container"}, Parent = Content})
-		Corner(Frame, 6)
+		Corner(Frame, 4)
 		Stroke(Frame, "Stroke", 1)
 		AddItem(text, Frame)
 		New("TextLabel", {Text = text, Size = UDim2.new(1, -110, 1, 0), Position = UDim2.fromOffset(12, 0), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Parent = Frame})
@@ -2437,7 +2490,7 @@ local function AttachElements(Section, Content, ctx)
 	function Section:KeyPicker(text, defaultKey, callback, allowNone)
 		local key = defaultKey or Enum.KeyCode.Unknown
 		local Frame = New("Frame", {Size = UDim2.new(1, 0, 0, 36), LayoutOrder = NextOrder(), Theme = {BackgroundColor3 = "Container"}, Parent = Content})
-		Corner(Frame, 6)
+		Corner(Frame, 4)
 		Stroke(Frame, "Stroke", 1)
 		AddItem(text, Frame)
 		New("TextLabel", {Text = text, Size = UDim2.new(1, -110, 1, 0), Position = UDim2.fromOffset(12, 0), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Parent = Frame})
@@ -2481,12 +2534,12 @@ local function AttachElements(Section, Content, ctx)
 		callback = WrapCallback(text, callback, false)
 		Library.Defaults[flag] = ""
 		local Frame = New("Frame", {Size = UDim2.new(1, 0, 0, 36), LayoutOrder = NextOrder(), Theme = {BackgroundColor3 = "Container"}, Parent = Content})
-		Corner(Frame, 6)
+		Corner(Frame, 4)
 		Stroke(Frame, "Stroke", 1)
 		AddItem(text, Frame)
 		New("TextLabel", {Text = text, Size = UDim2.new(0.42, -12, 1, 0), Position = UDim2.fromOffset(12, 0), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Parent = Frame})
 		local Box = New("Frame", {Size = UDim2.new(0.58, -10, 0, 24), Position = UDim2.new(1, -6, 0.5, 0), AnchorPoint = Vector2.new(1, 0.5), Theme = {BackgroundColor3 = "Field"}, Parent = Frame})
-		Corner(Box, 5)
+		Corner(Box, 3)
 		local BoxStroke = Stroke(Box, "Stroke", 1)
 		local currentText = Library.Flags[flag] or ""
 		local Input = New("TextBox", {Size = UDim2.new(1, -16, 1, 0), Position = UDim2.fromOffset(8, 0), Text = currentText, PlaceholderText = placeholder or "Type here...", TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, ClipsDescendants = true, Parent = Box})
@@ -2530,24 +2583,24 @@ local function AttachElements(Section, Content, ctx)
 		local HEAD, BODY = 36, 156
 
 		local Holder = New("Frame", {Size = UDim2.new(1, 0, 0, HEAD), ClipsDescendants = true, LayoutOrder = NextOrder(), Theme = {BackgroundColor3 = "Container"}, Parent = Content})
-		Corner(Holder, 6)
+		Corner(Holder, 4)
 		local HStroke = Stroke(Holder, "Stroke", 1)
 		AddItem(text, Holder)
 		local Head = New("TextButton", {Size = UDim2.new(1, 0, 0, HEAD), Parent = Holder})
 		New("TextLabel", {Text = text, Size = UDim2.new(1, -140, 1, 0), Position = UDim2.fromOffset(12, 0), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Parent = Head})
 		local HexLbl = New("TextLabel", {Size = UDim2.fromOffset(70, HEAD), Position = UDim2.new(1, -56, 0, 0), AnchorPoint = Vector2.new(1, 0), TextSize = 12, TextXAlignment = Enum.TextXAlignment.Right, Theme = {TextColor3 = "TextMuted"}, Parent = Head})
 		local Swatch = New("Frame", {Size = UDim2.fromOffset(34, 18), Position = UDim2.new(1, -12, 0.5, 0), AnchorPoint = Vector2.new(1, 0.5), BackgroundColor3 = color, Parent = Head})
-		Corner(Swatch, 5)
+		Corner(Swatch, 3)
 		Stroke(Swatch, "Stroke", 0)
 
 		local Body = New("Frame", {Size = UDim2.new(1, -20, 0, BODY - 10), Position = UDim2.fromOffset(10, HEAD + 2), BackgroundTransparency = 1, Parent = Holder})
 		local SVMap = New("ImageLabel", {Image = ASSET_SV, Size = UDim2.new(1, -28, 0, 106), BackgroundTransparency = 0, BackgroundColor3 = Color3.fromHSV(h, 1, 1), Active = true, Parent = Body})
-		Corner(SVMap, 5)
+		Corner(SVMap, 3)
 		local SVCursor = New("Frame", {Size = UDim2.fromOffset(12, 12), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(s, 0, 1 - v, 0), BackgroundTransparency = 1, ZIndex = 3, Parent = SVMap})
 		Corner(SVCursor, 6)
 		New("UIStroke", {Color = Color3.new(1, 1, 1), Thickness = 2, Parent = SVCursor})
 		local HueBar = New("Frame", {Size = UDim2.new(0, 18, 0, 106), Position = UDim2.new(1, -18, 0, 0), BackgroundColor3 = Color3.new(1, 1, 1), Active = true, Parent = Body})
-		Corner(HueBar, 5)
+		Corner(HueBar, 3)
 		New("UIGradient", {Rotation = 90, Color = ColorSequence.new({
 			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
 			ColorSequenceKeypoint.new(0.167, Color3.fromRGB(255, 255, 0)),
@@ -2563,7 +2616,7 @@ local function AttachElements(Section, Content, ctx)
 
 		local Bottom = New("Frame", {Size = UDim2.new(1, 0, 0, 26), Position = UDim2.fromOffset(0, 114), BackgroundTransparency = 1, Parent = Body})
 		local HexBox = New("TextBox", {Size = UDim2.fromOffset(84, 26), BackgroundTransparency = 0, TextSize = 13, Font = Config.FontBold, Theme = {BackgroundColor3 = "Field"}, Parent = Bottom})
-		Corner(HexBox, 5)
+		Corner(HexBox, 3)
 		local HexStroke = Stroke(HexBox, "Stroke", 1)
 		local Presets = New("Frame", {Size = UDim2.new(1, -92, 1, 0), Position = UDim2.fromOffset(92, 0), BackgroundTransparency = 1, Parent = Bottom})
 		ListLayout(Presets, 6, true, Enum.HorizontalAlignment.Right, Enum.VerticalAlignment.Center)
@@ -2671,18 +2724,19 @@ local function AttachElements(Section, Content, ctx)
 		local activeTab = subTabs[1] or "Skins"
 		local tabCount = #subTabs
 		local TabScroll = ctx.Page
+		if ctx.MakeFull then ctx.MakeFull() end
 
 		local BrowserFrame = New("Frame", {Size = UDim2.new(1, 0, 0, 500), ClipsDescendants = true, LayoutOrder = NextOrder(), Theme = {BackgroundColor3 = "Container"}, Parent = Content})
-		Corner(BrowserFrame, 8)
+		Corner(BrowserFrame, 5)
 		Stroke(BrowserFrame, "Stroke", 1)
 		AddItem("SkinBrowser", BrowserFrame)
 
 		-- segmented sub-tab control with a sliding pill
 		local NavBar = New("Frame", {Size = UDim2.new(1, -16, 0, 34), Position = UDim2.fromOffset(8, 8), Visible = tabCount > 1, Theme = {BackgroundColor3 = "Field"}, Parent = BrowserFrame})
-		Corner(NavBar, 7)
+		Corner(NavBar, 4)
 		local NavInner = New("Frame", {Size = UDim2.new(1, -6, 1, -6), Position = UDim2.fromOffset(3, 3), BackgroundTransparency = 1, Parent = NavBar})
 		local Pill = New("Frame", {Size = UDim2.new(1 / math.max(tabCount, 1), 0, 1, 0), Theme = {BackgroundColor3 = "Accent"}, Parent = NavInner})
-		Corner(Pill, 5)
+		Corner(Pill, 3)
 		local NavBtns = New("Frame", {Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = NavInner})
 		ListLayout(NavBtns, 0, true)
 		local navBtns = {}
@@ -2712,14 +2766,14 @@ local function AttachElements(Section, Content, ctx)
 		end
 		local function ListScroll(parent, ord, height)
 			local sf = New("ScrollingFrame", {Size = UDim2.new(1, 0, 0, height), LayoutOrder = ord, ScrollBarThickness = 3, BackgroundTransparency = 0, Theme = {BackgroundColor3 = "Field"}, Parent = parent})
-			Corner(sf, 6)
+			Corner(sf, 4)
 			ListLayout(sf, 2)
 			Padding(sf, 4, 4, 4, 4)
 			return sf
 		end
 		local function MakeViewport(parent)
-			local VP = New("ViewportFrame", {Size = UDim2.new(1, -16, 1, -60), Position = UDim2.fromOffset(8, 8), Theme = {BackgroundColor3 = "Field"}, Parent = parent})
-			Corner(VP, 7)
+			local VP = New("ViewportFrame", {Size = UDim2.new(1, -16, 1, -88), Position = UDim2.fromOffset(8, 8), Theme = {BackgroundColor3 = "Field"}, Parent = parent})
+			Corner(VP, 4)
 			local Cam = Instance.new("Camera")
 			Cam.FieldOfView = 50
 			Cam.Parent = VP
@@ -2739,7 +2793,7 @@ local function AttachElements(Section, Content, ctx)
 
 		-- === SKINS PAGE ===
 		local SkinsPage = New("Frame", {Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = ContentArea})
-		local LeftPanel = Panel(SkinsPage, UDim2.new(0.4, -4, 1, 0), UDim2.new())
+		local LeftPanel = Panel(SkinsPage, UDim2.new(0.36, -4, 1, 0), UDim2.new())
 		ListLayout(LeftPanel, 5)
 		Padding(LeftPanel, 8, 8, 8, 8)
 		PanelHeader(LeftPanel, "WEAPON", 1)
@@ -2762,11 +2816,8 @@ local function AttachElements(Section, Content, ctx)
 			skinQuery = q
 			FilterButtons(skinButtons, q)
 		end)
-		local ActFrame = New("Frame", {Size = UDim2.new(1, 0, 0, 32), BackgroundTransparency = 1, LayoutOrder = 7, Parent = LeftPanel})
-		local EquipBtnL = ActionButton(ActFrame, "EQUIP", true, {Size = UDim2.new(0.5, -3, 1, 0)})
-		local RestoreBtn = ActionButton(ActFrame, "RESTORE", false, {Size = UDim2.new(0.5, -3, 1, 0), Position = UDim2.new(0.5, 3, 0, 0)})
 
-		local RightPanel = Panel(SkinsPage, UDim2.new(0.6, -4, 1, 0), UDim2.new(0.4, 4, 0, 0))
+		local RightPanel = Panel(SkinsPage, UDim2.new(0.64, -4, 1, 0), UDim2.new(0.36, 4, 0, 0))
 		local VPFrame, VPCam, WorldMdl, LightPart = MakeViewport(RightPanel)
 		local LightPart2 = Instance.new("Part")
 		LightPart2.Transparency, LightPart2.Anchored, LightPart2.CanCollide = 1, true, false
@@ -2779,8 +2830,10 @@ local function AttachElements(Section, Content, ctx)
 		PLight2.Parent = LightPart2
 		local SkinCtrl = CreatePreviewController(VPFrame, VPCam)
 		SkinCtrl.ScrollFrame = TabScroll
-		local SkinNameLabel = New("TextLabel", {Size = UDim2.new(1, -16, 0, 18), Position = UDim2.new(0, 8, 1, -48), Text = "Select a skin", TextSize = 13, TextTruncate = Enum.TextTruncate.AtEnd, Theme = {TextColor3 = "TextDark"}, Parent = RightPanel})
-		local EquipBtnR = ActionButton(RightPanel, "EQUIP SKIN", true, {Size = UDim2.new(1, -16, 0, 28), Position = UDim2.new(0, 8, 1, -36)})
+		local SkinNameLabel = New("TextLabel", {Size = UDim2.new(1, -24, 0, 20), Position = UDim2.new(0, 12, 1, -74), Text = "Select a skin", Font = Config.FontBold, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Parent = RightPanel})
+		local EquipBtnR = ActionButton(RightPanel, "EQUIP SKIN", true, {Size = UDim2.new(0.62, -12, 0, 32), Position = UDim2.new(0, 8, 1, -42)})
+		local RestoreBtn = ActionButton(RightPanel, "RESTORE", false, {Size = UDim2.new(0.38, -8, 0, 32), Position = UDim2.new(0.62, 0, 1, -42)})
+		local EquipBtnL = EquipBtnR
 
 		-- === GENERIC COSMETIC PAGES (Wraps / Charms / ...) ===
 		local cosmeticPages = {}
@@ -2801,7 +2854,7 @@ local function AttachElements(Section, Content, ctx)
 			local pSelWeapon, pSelItem, pInverted = nil, nil, false
 
 			local PageF = New("Frame", {Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Visible = false, Parent = ContentArea})
-			local LPan = Panel(PageF, UDim2.new(0.4, -4, 1, 0), UDim2.new())
+			local LPan = Panel(PageF, UDim2.new(0.36, -4, 1, 0), UDim2.new())
 			ListLayout(LPan, 5)
 			Padding(LPan, 8, 8, 8, 8)
 
@@ -2815,7 +2868,7 @@ local function AttachElements(Section, Content, ctx)
 
 			if pHasInverted then
 				local tf = New("TextButton", {Size = UDim2.new(1, 0, 0, 26), Text = "Inverted: OFF", TextSize = 13, LayoutOrder = 7, Theme = {BackgroundColor3 = "Container"}, Parent = LPan})
-				Corner(tf, 5)
+				Corner(tf, 3)
 				Stroke(tf, "Stroke", 1)
 				Track(tf.MouseButton1Click, function()
 					pInverted = not pInverted
@@ -2824,27 +2877,26 @@ local function AttachElements(Section, Content, ctx)
 				end)
 			end
 
-			local ActF = New("Frame", {Size = UDim2.new(1, 0, 0, 32), BackgroundTransparency = 1, LayoutOrder = 8, Parent = LPan})
-			local EqB = ActionButton(ActF, pEquipText, true, {Size = UDim2.new(0.5, -3, 1, 0)})
-			local RmB = ActionButton(ActF, "REMOVE", false, {Size = UDim2.new(0.5, -3, 1, 0), Position = UDim2.new(0.5, 3, 0, 0)})
 
-			local RPan = Panel(PageF, UDim2.new(0.6, -4, 1, 0), UDim2.new(0.4, 4, 0, 0))
+			local RPan = Panel(PageF, UDim2.new(0.64, -4, 1, 0), UDim2.new(0.36, 4, 0, 0))
 			local VP, Cam, WM, L1 = MakeViewport(RPan)
 			local pCtrl = CreatePreviewController(VP, Cam)
 			pCtrl.ScrollFrame = TabScroll
-			local NameLbl = New("TextLabel", {Size = UDim2.new(1, -16, 0, 18), Position = UDim2.new(0, 8, 1, -48), Text = "Select an item", TextSize = 13, TextTruncate = Enum.TextTruncate.AtEnd, Theme = {TextColor3 = "TextDark"}, Parent = RPan})
-			local EqR = ActionButton(RPan, pEquipText, true, {Size = UDim2.new(1, -16, 0, 28), Position = UDim2.new(0, 8, 1, -36)})
+			local NameLbl = New("TextLabel", {Size = UDim2.new(1, -24, 0, 20), Position = UDim2.new(0, 12, 1, -74), Text = "Select an item", Font = Config.FontBold, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Parent = RPan})
+			local EqR = ActionButton(RPan, pEquipText, true, {Size = UDim2.new(0.62, -12, 0, 32), Position = UDim2.new(0, 8, 1, -42)})
+			local RmB = ActionButton(RPan, "REMOVE", false, {Size = UDim2.new(0.38, -8, 0, 32), Position = UDim2.new(0.62, 0, 1, -42)})
+			local EqB = EqR
 
 			local Host
 			if pNoPreview then
 				VP.Visible = false
-				Host = New("ScrollingFrame", {Size = UDim2.new(1, -16, 1, -60), Position = UDim2.fromOffset(8, 8), ScrollBarThickness = 3, Parent = RPan})
+				Host = New("ScrollingFrame", {Size = UDim2.new(1, -16, 1, -88), Position = UDim2.fromOffset(8, 8), ScrollBarThickness = 3, Parent = RPan})
 				ListLayout(Host, 6)
 			end
 
 			local PrevImg
 			if pGetImage and not pNoPreview then
-				PrevImg = New("ImageLabel", {Size = UDim2.new(1, -32, 1, -76), Position = UDim2.fromOffset(16, 16), ScaleType = Enum.ScaleType.Fit, Image = "", Parent = RPan})
+				PrevImg = New("ImageLabel", {Size = UDim2.new(1, -32, 1, -104), Position = UDim2.fromOffset(16, 16), ScaleType = Enum.ScaleType.Fit, Image = "", Parent = RPan})
 			end
 
 			local pPreviewModel = nil
@@ -2876,7 +2928,7 @@ local function AttachElements(Section, Content, ctx)
 					local ap = clone:FindFirstChildWhichIsA("BasePart", true)
 					if ap then cf, size = ap.CFrame, ap.Size else cf, size = CFrame.new(), Vector3.new(2, 2, 2) end
 				end
-				local dist = math.max(size.X, size.Y, size.Z, 1) * 2.2
+				local dist = math.max(size.X, size.Y, size.Z, 1) * 2.8
 				Cam.CFrame = CFrame.new(cf.Position + Vector3.new(0, size.Y * 0.2, dist), cf.Position)
 				pCtrl:Reset()
 				pCtrl.Model = clone
@@ -2962,9 +3014,9 @@ local function AttachElements(Section, Content, ctx)
 				ApplyHeight = function(contentH)
 					local invH = pHasInverted and 31 or 0
 					if pNoWeapons then
-						IScroll.Size = UDim2.new(1, 0, 0, math.max(contentH - (16 + 26 + 32 + 40 + invH), 120))
+						IScroll.Size = UDim2.new(1, 0, 0, math.max(contentH - (16 + 26 + 40 + invH), 120))
 					else
-						local space = math.max(contentH - (32 + 52 + 32 + 50 + invH), 160)
+						local space = math.max(contentH - (32 + 52 + 50 + invH), 160)
 						local wh = math.floor(space * 0.5)
 						WScroll.Size = UDim2.new(1, 0, 0, wh)
 						IScroll.Size = UDim2.new(1, 0, 0, space - wh)
@@ -2993,7 +3045,7 @@ local function AttachElements(Section, Content, ctx)
 			local h = math.clamp(math.floor(avail / UIScaleValue()) - 60, 300, 760)
 			BrowserFrame.Size = UDim2.new(1, 0, 0, h)
 			local contentH = h - 56
-			local space = math.max(contentH - 166, 140)
+			local space = math.max(contentH - 129, 140)
 			local wh = math.floor(space * 0.52)
 			WepScroll.Size = UDim2.new(1, 0, 0, wh)
 			SkinScroll.Size = UDim2.new(1, 0, 0, space - wh)
@@ -3053,7 +3105,7 @@ local function AttachElements(Section, Content, ctx)
 				local anyPart = clone:FindFirstChildWhichIsA("BasePart", true)
 				if anyPart then cf, size = anyPart.CFrame, anyPart.Size else cf, size = CFrame.new(), Vector3.new(2, 2, 2) end
 			end
-			local dist = math.max(size.X, size.Y, size.Z, 1) * 2.2
+			local dist = math.max(size.X, size.Y, size.Z, 1) * 2.8
 			VPCam.CFrame = CFrame.new(cf.Position + Vector3.new(0, size.Y * 0.2, dist), cf.Position)
 			SkinCtrl:Reset()
 			SkinCtrl.Model = clone
@@ -3185,14 +3237,14 @@ function Library:CreateWindow(options)
 	Library._MainScale = MainScale
 	Library._SetScale = MainScale
 	local Window = New("Frame", {Name = "MainWindow", Size = UDim2.fromScale(1, 1), Active = true, Theme = {BackgroundColor3 = "Background"}, Parent = Holder})
-	Corner(Window, 10)
+	Corner(Window, 6)
 	Stroke(Window, "Stroke", 0)
 	Library._MainWindow = Window
 	Library._SettingsWindow = Window
 
 	------------------------------------------------------------------ topbar
 	local Topbar = New("Frame", {Size = UDim2.new(1, 0, 0, TOP), Theme = {BackgroundColor3 = "Topbar"}, Parent = Window})
-	Corner(Topbar, 10)
+	Corner(Topbar, 6)
 	New("Frame", {Size = UDim2.new(1, 0, 0, 10), Position = UDim2.new(0, 0, 1, -10), Theme = {BackgroundColor3 = "Topbar"}, Parent = Topbar})
 	local TitleRow = New("Frame", {Size = UDim2.new(0.5, 0, 1, 0), Position = UDim2.fromOffset(14, 0), BackgroundTransparency = 1, Parent = Topbar})
 	ListLayout(TitleRow, 9, true, nil, Enum.VerticalAlignment.Center)
@@ -3201,7 +3253,7 @@ function Library:CreateWindow(options)
 
 	local function TopButton(icon, xOff, hoverKey)
 		local b = New("ImageButton", {Size = UDim2.fromOffset(28, 28), Position = UDim2.new(1, xOff, 0.5, 0), AnchorPoint = Vector2.new(1, 0.5), BackgroundTransparency = 1, Theme = {BackgroundColor3 = "Container"}, Parent = Topbar})
-		Corner(b, 7)
+		Corner(b, 4)
 		local img = New("ImageLabel", {Image = icon, Size = UDim2.fromOffset(16, 16), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), Theme = {ImageColor3 = "TextDark"}, Parent = b})
 		Track(b.MouseEnter, function()
 			Tween(b, {BackgroundTransparency = 0}, 0.18)
@@ -3217,14 +3269,14 @@ function Library:CreateWindow(options)
 	local MinBtn = TopButton(ASSET_MIN, -42, "Text")
 
 	local SearchBox = New("Frame", {Size = UDim2.fromOffset(230, 28), Position = UDim2.new(1, -80, 0.5, 0), AnchorPoint = Vector2.new(1, 0.5), Theme = {BackgroundColor3 = "Field"}, Parent = Topbar})
-	Corner(SearchBox, 7)
+	Corner(SearchBox, 4)
 	local SStroke = Stroke(SearchBox, "Stroke", 1)
 	IconImage(SearchBox, "search", 13, {Position = UDim2.new(0, 10, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), Theme = {ImageColor3 = "TextMuted"}})
 	local SearchInput = New("TextBox", {Size = UDim2.new(1, -40, 1, 0), Position = UDim2.fromOffset(30, 0), PlaceholderText = "Search features", TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, ClipsDescendants = true, Parent = SearchBox})
 
 	------------------------------------------------------------------ sidebar
 	local Sidebar = New("Frame", {Size = UDim2.new(0, SIDE, 1, -(TOP + 1)), Position = UDim2.fromOffset(0, TOP + 1), Theme = {BackgroundColor3 = "Sidebar"}, Parent = Window})
-	Corner(Sidebar, 10)
+	Corner(Sidebar, 6)
 	New("Frame", {Size = UDim2.new(1, 0, 0, 10), Theme = {BackgroundColor3 = "Sidebar"}, Parent = Sidebar})
 	New("Frame", {Size = UDim2.new(0, 10, 1, 0), Position = UDim2.new(1, -10, 0, 0), Theme = {BackgroundColor3 = "Sidebar"}, Parent = Sidebar})
 	local Clip = New("Frame", {Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ClipsDescendants = true, Parent = Sidebar})
@@ -3238,7 +3290,7 @@ function Library:CreateWindow(options)
 	ListLayout(TabContainer, 4)
 
 	local Profile = New("TextButton", {Size = UDim2.new(1, -20, 0, 52), Position = UDim2.new(0, 10, 1, -10), AnchorPoint = Vector2.new(0, 1), ClipsDescendants = true, Theme = {BackgroundColor3 = "Container"}, Parent = MainStack})
-	Corner(Profile, 8)
+	Corner(Profile, 5)
 	local PStroke = Stroke(Profile, "Stroke", 1)
 	local Avatar = New("ImageLabel", {Size = UDim2.fromOffset(32, 32), Position = UDim2.new(0, 10, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), BackgroundTransparency = 0, Theme = {BackgroundColor3 = "Field"}, Parent = Profile})
 	Corner(Avatar, 16)
@@ -3255,7 +3307,7 @@ function Library:CreateWindow(options)
 	Track(Profile.MouseLeave, function() Tween(Gear, {Rotation = 0, ImageColor3 = Theme.TextDark}, 0.5) end)
 
 	local BackBtn = New("TextButton", {Size = UDim2.new(1, -20, 0, 32), Position = UDim2.fromOffset(10, 12), ClipsDescendants = true, Theme = {BackgroundColor3 = "Container"}, Parent = SetStack})
-	Corner(BackBtn, 7)
+	Corner(BackBtn, 4)
 	Interactive(BackBtn, Stroke(BackBtn, "Stroke", 1))
 	local BackArrow = New("ImageLabel", {Image = ASSET_CHEVRON, Size = UDim2.fromOffset(14, 14), Rotation = 90, Position = UDim2.new(0, 12, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), Theme = {ImageColor3 = "TextDark"}, Parent = BackBtn})
 	New("TextLabel", {Text = "Back", Font = Config.FontBold, TextSize = 13, Size = UDim2.new(1, -40, 1, 0), Position = UDim2.fromOffset(32, 0), TextXAlignment = Enum.TextXAlignment.Left, Parent = BackBtn})
@@ -3285,19 +3337,22 @@ function Library:CreateWindow(options)
 	MakeDraggable(Topbar, Holder)
 
 	local function RefreshDecor()
-		local d = Window:FindFirstChild("HalloweenDecor")
-		local want = Library.CurrentTheme == "Halloween" and Library.DecorEnabled
-		if want and not d then
-			BuildHalloweenDecor(Window, TOP + 1)
-		elseif not want and d then
-			d:Destroy()
+		local builders = {Halloween = BuildHalloweenDecor, Christmas = BuildChristmasDecor}
+		local want = Library.DecorEnabled and builders[Library.CurrentTheme] and Library.CurrentTheme or nil
+		local d = Window:FindFirstChild("SeasonDecor")
+		if d and d:GetAttribute("Season") == want then return end
+		if d then d:Destroy() end
+		if want then
+			local built = builders[want](Window, TOP + 1)
+			built.Name = "SeasonDecor"
+			built:SetAttribute("Season", want)
 		end
 	end
 	OnThemeChanged(RefreshDecor)
 	RefreshDecor()
 
 	local SearchResults = New("Frame", {Size = UDim2.fromOffset(300, 0), Position = UDim2.new(1, -80, 0, TOP + 4), AnchorPoint = Vector2.new(1, 0), ClipsDescendants = true, Visible = false, ZIndex = 300, Theme = {BackgroundColor3 = "Topbar"}, Parent = Window})
-	Corner(SearchResults, 8)
+	Corner(SearchResults, 5)
 	Stroke(SearchResults, "Stroke", 0)
 	local ResultsList = New("ScrollingFrame", {Size = UDim2.fromScale(1, 1), ScrollBarThickness = 2, ZIndex = 301, Parent = SearchResults})
 	Padding(ResultsList, 4, 4, 4, 4)
@@ -3305,7 +3360,7 @@ function Library:CreateWindow(options)
 
 	local PopupLayer = New("Frame", {Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 350, Parent = Window})
 	local Veil = New("Frame", {Size = UDim2.fromScale(1, 1), ZIndex = 500, Theme = {BackgroundColor3 = "Background"}, Parent = Window})
-	Corner(Veil, 10)
+	Corner(Veil, 6)
 
 	------------------------------------------------------------------ context menu (keybind modes)
 	local ActiveMenu
@@ -3321,14 +3376,14 @@ function Library:CreateWindow(options)
 		local rel = (anchor.AbsolutePosition - Window.AbsolutePosition) / sc
 		local w, h = 104, #items * 28 + 8
 		local Menu = New("Frame", {Size = UDim2.fromOffset(w, 0), Position = UDim2.fromOffset(rel.X + anchor.AbsoluteSize.X / sc - w, rel.Y + anchor.AbsoluteSize.Y / sc + 4), ClipsDescendants = true, ZIndex = 360, Theme = {BackgroundColor3 = "Topbar"}, Parent = PopupLayer})
-		Corner(Menu, 7)
+		Corner(Menu, 4)
 		Stroke(Menu, "Stroke", 0)
 		Padding(Menu, 4, 4, 4, 4)
 		ListLayout(Menu, 0)
 		for i, item in ipairs(items) do
 			local isCur = item == current
 			local b = New("TextButton", {Size = UDim2.new(1, 0, 0, 28), Text = item, TextSize = 13, BackgroundTransparency = 1, LayoutOrder = i, ZIndex = 361, Theme = {BackgroundColor3 = "Hover", TextColor3 = isCur and "Accent" or "TextDark"}, Parent = Menu})
-			Corner(b, 5)
+			Corner(b, 3)
 			Track(b.MouseEnter, function() Tween(b, {BackgroundTransparency = 0}, 0.12) end)
 			Track(b.MouseLeave, function() Tween(b, {BackgroundTransparency = 1}, 0.18) end)
 			Track(b.MouseButton1Click, function()
@@ -3462,7 +3517,7 @@ function Library:CreateWindow(options)
 	local function CreateTabButton(list, name, icon, order)
 		local active, hovered = false, false
 		local Btn = New("TextButton", {Size = UDim2.new(1, 0, 0, 34), BackgroundTransparency = 1, LayoutOrder = order, ClipsDescendants = true, Theme = {BackgroundColor3 = "Container"}, Parent = list})
-		Corner(Btn, 7)
+		Corner(Btn, 4)
 		local textX = 14
 		local Ico
 		if icon then
@@ -3523,10 +3578,14 @@ function Library:CreateWindow(options)
 
 		local vp = workspace.CurrentCamera.ViewportSize
 		local isMobile = vp.X < 700 or (vp.X / math.max(vp.Y, 1)) < 1.3
-		local LeftCol = New("Frame", {BackgroundTransparency = 1, AutomaticSize = Enum.AutomaticSize.Y, Parent = Page})
-		local RightCol = New("Frame", {BackgroundTransparency = 1, AutomaticSize = Enum.AutomaticSize.Y, Parent = Page})
+		-- page = [full width sections] then [left | right columns]
+		ListLayout(Page, 10)
+		local FullCol = New("Frame", {Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = 1, Parent = Page})
+		local Columns = New("Frame", {Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = 2, Parent = Page})
+		local LeftCol = New("Frame", {BackgroundTransparency = 1, AutomaticSize = Enum.AutomaticSize.Y, Parent = Columns})
+		local RightCol = New("Frame", {BackgroundTransparency = 1, AutomaticSize = Enum.AutomaticSize.Y, Parent = Columns})
 		if isMobile then
-			ListLayout(Page, 10)
+			ListLayout(Columns, 10)
 			LeftCol.Size = UDim2.new(1, 0, 0, 0)
 			LeftCol.LayoutOrder = 1
 			RightCol.Size = UDim2.new(1, 0, 0, 0)
@@ -3536,14 +3595,23 @@ function Library:CreateWindow(options)
 			RightCol.Size = UDim2.new(0.5, -5, 0, 0)
 			RightCol.Position = UDim2.new(0.5, 5, 0, 0)
 		end
+		ListLayout(FullCol, 10)
 		ListLayout(LeftCol, 10)
 		ListLayout(RightCol, 10)
-		local colOrder = {[LeftCol] = 0, [RightCol] = 0}
+		local colOrder = {[LeftCol] = 0, [RightCol] = 0, [FullCol] = 0}
+		-- hide empty areas so they don't add gaps
+		local function SyncAreas()
+			FullCol.Visible = colOrder[FullCol] > 0
+			Columns.Visible = colOrder[LeftCol] + colOrder[RightCol] > 0
+		end
+		SyncAreas()
 
+		-- side: "Left" (default), "Right" or "Full" (spans the whole page)
 		function Tab:Section(text, side)
 			local Section = {}
-			local col = side == "Right" and RightCol or LeftCol
+			local col = side == "Right" and RightCol or side == "Full" and FullCol or LeftCol
 			colOrder[col] += 1
+			SyncAreas()
 			local Container, Content = CreateSectionFrame(text, col, colOrder[col])
 			Section.Container = Container
 			local secData = {Instance = Container, Items = {}, Title = text}
@@ -3555,6 +3623,15 @@ function Library:CreateWindow(options)
 				Page = Page,
 				OpenMenu = OpenMenu,
 				AddItem = function(n, inst) table.insert(secData.Items, {Name = n, Instance = inst}) end,
+				-- big elements (skin browser) pull their section out to full width
+				MakeFull = function()
+					if Container.Parent == FullCol then return end
+					colOrder[col] -= 1
+					colOrder[FullCol] += 1
+					Container.LayoutOrder = colOrder[FullCol]
+					Container.Parent = FullCol
+					SyncAreas()
+				end,
 			})
 		end
 		return Tab
@@ -3604,7 +3681,7 @@ function Library:CreateWindow(options)
 
 	local function AddResultRow(tabName, itemName, order, onClick)
 		local Row = New("TextButton", {Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 1, LayoutOrder = order, ZIndex = 302, Theme = {BackgroundColor3 = "Hover"}, Parent = ResultsList})
-		Corner(Row, 5)
+		Corner(Row, 3)
 		New("TextLabel", {Size = UDim2.new(0.62, -10, 1, 0), Position = UDim2.fromOffset(10, 0), Text = itemName, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 303, Parent = Row})
 		New("TextLabel", {Size = UDim2.new(0.38, -10, 1, 0), Position = UDim2.fromScale(0.62, 0), Text = tabName, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 303, Theme = {TextColor3 = "TextMuted"}, Parent = Row})
 		Track(Row.MouseEnter, function() Tween(Row, {BackgroundTransparency = 0}, 0.12) end)
@@ -3724,7 +3801,7 @@ function Library:CreateWindow(options)
 		for i, name in ipairs(ThemeOrder) do
 			local pal = Themes[name]
 			local Card = New("TextButton", {BackgroundColor3 = pal.Section, LayoutOrder = i, ClipsDescendants = true, Parent = Grid})
-			Corner(Card, 7)
+			Corner(Card, 4)
 			-- only the active theme gets an outline
 			New("UIStroke", {Thickness = 1.5, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Theme = {
 				Color = "Accent",
@@ -3768,7 +3845,7 @@ function Library:CreateWindow(options)
 			SetBlur(state and Library.Open)
 			MarkInterface()
 		end)
-		WinSec:Toggle("Seasonal decorations", "DecorToggle", Library.DecorEnabled, "Cobwebs and spiders on the Halloween theme", function(state)
+		WinSec:Toggle("Seasonal decorations", "DecorToggle", Library.DecorEnabled, "Cobwebs on Halloween, snow on Christmas", function(state)
 			Library.DecorEnabled = state
 			RefreshDecor()
 			MarkInterface()
@@ -3947,6 +4024,32 @@ function Library:CreateWindow(options)
 	Community:Label("Join the Discord for updates, support and new scripts.")
 	Community:Button("Copy Discord invite", nil, function() CopyLink(Library.HubConfig.Socials.Discord, "Discord") end)
 	Community:Button("Copy YouTube channel", nil, function() CopyLink(Library.HubConfig.Socials.YouTube, "YouTube") end)
+
+	-- update log: one line per change with a small NEW / FIX tag
+	local log = Library.HubConfig.UpdateLog or {}
+	local hasAdded = type(log.Added) == "table" and #log.Added > 0
+	local hasFixed = type(log.Fixed) == "table" and #log.Fixed > 0
+	if hasAdded or hasFixed then
+		local Updates = InfoTab:Section("What's new", "Right")
+		if log.Date and log.Date ~= "" then Updates:Row("Released", log.Date) end
+		local function Change(tag, colorKey, text)
+			local Line = New("Frame", {Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = Updates._NextOrder(), Parent = Updates.Content})
+			local Tag = New("TextLabel", {
+				Text = tag, Font = Config.FontBold, TextSize = 10,
+				Size = UDim2.fromOffset(34, 18), Position = UDim2.fromOffset(2, 1),
+				Theme = {
+					TextColor3 = colorKey,
+					BackgroundColor3 = function() return Theme.Section:Lerp(Theme[colorKey], 0.18) end,
+				},
+				Parent = Line,
+			})
+			Corner(Tag, 3)
+			New("TextLabel", {Text = text, TextSize = 13, TextWrapped = true, Size = UDim2.new(1, -46, 0, 0), Position = UDim2.fromOffset(44, 0), AutomaticSize = Enum.AutomaticSize.Y, TextXAlignment = Enum.TextXAlignment.Left, Parent = Line})
+			New("UIPadding", {PaddingTop = UDim.new(0, 1), PaddingBottom = UDim.new(0, 3), Parent = Line})
+		end
+		if hasAdded then for _, v in ipairs(log.Added) do Change("NEW", "Success", tostring(v)) end end
+		if hasFixed then for _, v in ipairs(log.Fixed) do Change("FIX", "Accent", tostring(v)) end end
+	end
 
 	local Quick = InfoTab:Section("Quick actions", "Right")
 	local MenuKeyRow = Quick:Row("Menu key", Config.Keybind.Name)
