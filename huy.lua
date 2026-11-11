@@ -44,6 +44,10 @@ local Library = {
 	DecorEnabled = true,
 	Animations = true,
 	CustomAccent = nil,
+	Rounding = "Default",
+	TooltipsEnabled = true,
+	NotifySide = "Bottom right",
+	MiniButtonEnabled = true,
 	InterfaceDirty = false,
 }
 
@@ -120,9 +124,11 @@ local function DeriveTheme()
 	Theme.StrokeHover = Theme.Stroke:Lerp(Theme.Text, 0.12)
 end
 
+-- user color overrides (Settings > Appearance > Colors); they stay when switching themes
+Library.CustomColors = {}
 local function LoadPalette(name)
 	local palette = Themes[name] or Themes["Phantom Red"]
-	for _, key in ipairs(ThemeKeys) do Theme[key] = palette[key] end
+	for _, key in ipairs(ThemeKeys) do Theme[key] = Library.CustomColors[key] or palette[key] end
 	DeriveTheme()
 end
 LoadPalette(Library.CurrentTheme)
@@ -285,9 +291,44 @@ local function New(class, props)
 	return inst
 end
 
-local function Corner(parent, radius)
-	return New("UICorner", {CornerRadius = UDim.new(0, radius or 6), Parent = parent})
+-- corner style ("Sharp" / "Default" / "Round") scales the 2px and 4px style corners;
+-- circles and tiny dots keep their radius
+local Corners = {}
+local RoundingScale = {Sharp = 0, Default = 1, Round = 2.5}
+local function ScaledRadius(base)
+	return math.floor(base * (RoundingScale[Library.Rounding] or 1) + 0.5)
 end
+local function Corner(parent, radius)
+	radius = radius or 6
+	local scalable = (radius == 2 or radius == 4) and not (parent.Size.X.Scale == 0 and parent.Size.X.Offset <= 8)
+	local c = New("UICorner", {CornerRadius = UDim.new(0, scalable and ScaledRadius(radius) or radius), Parent = parent})
+	if scalable then Corners[c] = radius end
+	return c
+end
+
+function Library:SetRounding(style)
+	if not RoundingScale[style] then return end
+	Library.Rounding = style
+	for c, base in pairs(Corners) do
+		if c.Parent then
+			c.CornerRadius = UDim.new(0, ScaledRadius(base))
+		else
+			Corners[c] = nil
+		end
+	end
+	Library.InterfaceDirty = true
+end
+
+local FontChoices = {
+	Code = Enum.Font.Code,
+	Gotham = Enum.Font.GothamMedium,
+	["Builder Sans"] = Enum.Font.BuilderSansMedium,
+	Ubuntu = Enum.Font.Ubuntu,
+	["Source Sans"] = Enum.Font.SourceSans,
+	Arial = Enum.Font.Arial,
+}
+local FontOrder = {"Code", "Gotham", "Builder Sans", "Ubuntu", "Source Sans", "Arial"}
+Library.FontName = "Code"
 
 local function Stroke(parent, key, transparency, thickness)
 	return New("UIStroke", {
@@ -412,6 +453,45 @@ function Library:UpdateTheme(newColor)
 	Library.CustomAccent = newColor
 	DeriveTheme()
 	RefreshTheme(false)
+	Library.InterfaceDirty = true
+end
+
+-- override one base color (Background, Section, Container, Stroke, Text, ...), nil puts the theme's back
+function Library:SetColor(key, color)
+	if not table.find(ThemeKeys, key) then return end
+	Library.CustomColors[key] = typeof(color) == "Color3" and color or nil
+	local accent, accentText = Theme.Accent, Theme.AccentText
+	LoadPalette(Library.CurrentTheme)
+	if Library.CustomAccent then Theme.Accent, Theme.AccentText = accent, accentText DeriveTheme() end
+	RefreshTheme(false)
+	Library.InterfaceDirty = true
+end
+
+function Library:ResetColors()
+	table.clear(Library.CustomColors)
+	Library.CustomAccent = nil
+	LoadPalette(Library.CurrentTheme)
+	RefreshTheme(true)
+	Library.InterfaceDirty = true
+end
+
+function Library:SetFont(name)
+	local font = FontChoices[name]
+	if not font then return end
+	Library.FontName = name
+	Config.FontMain, Config.FontBold = font, font
+	Library.Fonts.Main, Library.Fonts.Bold = font, font
+	local roots = {Library.ScreenGui}
+	for _, g in pairs(GetParent():GetChildren()) do
+		if table.find(OwnedScreens, g.Name) then table.insert(roots, g) end
+	end
+	for _, root in ipairs(roots) do
+		if root then
+			for _, d in ipairs(root:GetDescendants()) do
+				if d:IsA("TextLabel") or d:IsA("TextButton") or d:IsA("TextBox") then d.Font = font end
+			end
+		end
+	end
 	Library.InterfaceDirty = true
 end
 
@@ -832,6 +912,8 @@ end
 local function GetBaseScale()
 	local vp = workspace.CurrentCamera.ViewportSize
 	if vp.X < 1 or vp.Y < 1 then return 1 end
+	-- phones: keep text readable, the window shrinks to fit instead (see CreateWindow)
+	if IsTouchOnly() then return math.clamp(math.min(vp.Y / 460, vp.X / 700), 0.55, 1) end
 	local scale = math.min(vp.X / 950, vp.Y / 560)
 	if scale < 1 then return math.clamp(scale * 0.95, 0.4, 1) end
 	return 1
@@ -985,6 +1067,17 @@ local IgnoredFlags = {
 	DecorToggle = true,
 	InterfaceScale = true,
 	AutosaveToggle = true,
+	MiniButtonToggle = true,
+	TooltipsToggle = true,
+	NotifySide = true,
+	FontChoice = true,
+	CornerStyle = true,
+	ColorBackground = true,
+	ColorPanels = true,
+	ColorControls = true,
+	ColorOutline = true,
+	ColorText = true,
+	ColorTextDark = true,
 }
 
 local function SerializeConfigValue(v)
@@ -1081,7 +1174,14 @@ local function SaveInterface()
 		ShowKeybinds = Library.ShowKeybinds,
 		MenuKey = Config.Keybind.Name,
 		HideKey = Config.HideKeybind.Name,
+		Font = Library.FontName,
+		Rounding = Library.Rounding,
+		Tooltips = Library.TooltipsEnabled,
+		NotifySide = Library.NotifySide,
+		MiniButton = Library.MiniButtonEnabled,
+		Colors = {},
 	}
+	for k, c in pairs(Library.CustomColors) do data.Colors[k] = c:ToHex() end
 	pcall(function() writefile(InterfacePath(), HttpService:JSONEncode(data)) end)
 end
 
@@ -1089,6 +1189,20 @@ local function LoadInterface()
 	if not isfile(InterfacePath()) then return end
 	local ok, data = pcall(function() return HttpService:JSONDecode(readfile(InterfacePath())) end)
 	if not ok or type(data) ~= "table" then return end
+	if type(data.Colors) == "table" then
+		for k, hex in pairs(data.Colors) do
+			if table.find(ThemeKeys, k) then pcall(function() Library.CustomColors[k] = Color3.fromHex(hex) end) end
+		end
+	end
+	if FontChoices[data.Font] then
+		Library.FontName = data.Font
+		Config.FontMain, Config.FontBold = FontChoices[data.Font], FontChoices[data.Font]
+	end
+	if RoundingScale[data.Rounding] then Library.Rounding = data.Rounding end
+	if type(data.Tooltips) == "boolean" then Library.TooltipsEnabled = data.Tooltips end
+	if type(data.NotifySide) == "string" then Library.NotifySide = data.NotifySide end
+	if type(data.MiniButton) == "boolean" then Library.MiniButtonEnabled = data.MiniButton end
+	LoadPalette(Library.CurrentTheme)
 	if Themes[data.Theme] then
 		Library.CurrentTheme = data.Theme
 		LoadPalette(data.Theme)
@@ -1150,7 +1264,7 @@ local function ApplyTooltip(guiObj, text)
 	if not text or text == "" then return end
 	Track(guiObj.MouseEnter, function()
 		local f = Tooltip.Frame
-		if not f then return end
+		if not f or not Library.TooltipsEnabled then return end
 		Tooltip.Token += 1
 		local token = Tooltip.Token
 		task.delay(0.45, function()
@@ -1193,11 +1307,21 @@ function Library:Notify(title, text, duration, kind)
 		ListLayout(Holder, 8, false, Enum.HorizontalAlignment.Right, Enum.VerticalAlignment.Bottom)
 	end
 	local Holder = Gui:FindFirstChild("Container")
+	-- place the stack in the corner picked in Settings > General
+	local side = Library.NotifySide or "Bottom right"
+	local onRight = side:find("right") ~= nil
+	local onTop = side:find("Top") ~= nil
+	Holder.AnchorPoint = Vector2.new(onRight and 1 or 0, 0)
+	Holder.Position = onRight and UDim2.new(1, -16, 0, 16) or UDim2.new(0, 16, 0, 16)
+	local HolderList = Holder:FindFirstChildOfClass("UIListLayout")
+	HolderList.HorizontalAlignment = onRight and Enum.HorizontalAlignment.Right or Enum.HorizontalAlignment.Left
+	HolderList.VerticalAlignment = onTop and Enum.VerticalAlignment.Top or Enum.VerticalAlignment.Bottom
+	local offscreen = onRight and UDim2.new(1, 40, 0, 0) or UDim2.new(-1, -40, 0, 0)
 	NotifyOrder += 1
 	local colorKey = NotifyColors[level]
 
 	local Slot = New("Frame", {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1, LayoutOrder = NotifyOrder, Parent = Holder})
-	local Card = New("TextButton", {Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, Position = UDim2.new(1, 40, 0, 0), BackgroundTransparency = 0.03, Theme = {BackgroundColor3 = "Background"}, Parent = Slot})
+	local Card = New("TextButton", {Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, Position = offscreen, BackgroundTransparency = 0.03, Theme = {BackgroundColor3 = "Background"}, Parent = Slot})
 	Corner(Card, 5)
 	Stroke(Card, "Stroke", 0)
 	local IconBg = New("Frame", {Size = UDim2.fromOffset(28, 28), Position = UDim2.fromOffset(8, 10), BackgroundTransparency = 1, Theme = {BackgroundColor3 = function() return Theme.Section:Lerp(Theme[colorKey], 0.18) end}, Parent = Card})
@@ -1213,7 +1337,7 @@ function Library:Notify(title, text, duration, kind)
 	local function Close()
 		if closed then return end
 		closed = true
-		Tween(Card, {Position = UDim2.new(1, 40, 0, 0)}, 0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
+		Tween(Card, {Position = offscreen}, 0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
 		task.delay(0.3, function()
 			Tween(Slot, {Size = UDim2.new(1, 0, 0, 0)}, 0.25).Completed:Connect(function() Slot:Destroy() end)
 		end)
@@ -1289,14 +1413,16 @@ local function BindHasKey(key)
 	return key ~= nil and key ~= "None" and key ~= "Unknown" and key ~= ""
 end
 
+-- PC: every bound key shows up. Mobile: only toggles the user pinned show up, as tap buttons.
 local function BindIsListed(entry)
-	if IsTouchOnly() then return false end
+	if IsTouchOnly() then return entry.MobilePinned == true and entry.Toggle ~= nil end
 	return BindHasKey(entry.Key) and entry.Mode ~= "Always"
 end
 
 local function RefreshBindList()
 	if not Library.KeybindList then return end
 	local shown = 0
+	local mobile = IsTouchOnly()
 	for _, name in ipairs(Library.BindOrder) do
 		local entry = Library.Binds[name]
 		if entry and entry.Row then
@@ -1306,54 +1432,68 @@ local function RefreshBindList()
 				shown += 1
 				entry.Row.LayoutOrder = shown
 				local on = entry.Active
-				entry.KeyLabel.Text = BindHasKey(entry.Key) and tostring(entry.Key) or ""
-				Tween(entry.Dot, {BackgroundColor3 = on and Theme.Accent or Theme.TextMuted}, 0.2)
-				Tween(entry.NameLabel, {TextColor3 = on and Theme.Text or Theme.TextDark}, 0.2)
-				Tween(entry.KeyLabel, {TextColor3 = on and Theme.AccentText or Theme.TextDark, BackgroundColor3 = on and Theme.Accent or Theme.Field}, 0.2)
+				if mobile then
+					Tween(entry.NameLabel, {TextTransparency = on and 0 or 0.4}, 0.15)
+					Tween(entry.Switch, {BackgroundColor3 = on and Theme.Accent or Theme.Container}, 0.15)
+					Tween(entry.Ball, {AnchorPoint = Vector2.new(on and 1 or 0, 0), Position = UDim2.fromScale(on and 1 or 0, 0), BackgroundColor3 = on and Theme.AccentText or Theme.Text}, 0.15)
+				else
+					local mode = entry.Mode ~= "Toggle" and (" (" .. tostring(entry.Mode) .. ")") or ""
+					local keyColor = on and Theme.Accent or Theme.TextDark
+					entry.NameLabel.Text = string.format('<font color="#%s">[%s]</font> %s%s', keyColor:ToHex(), tostring(entry.Key), name, mode)
+					Tween(entry.NameLabel, {TextTransparency = on and 0 or 0.45}, 0.15)
+				end
 			end
 		end
 	end
+	Library.KeybindList.Title.Text = mobile and "Quick toggles" or "Keybinds"
 	Library.KeybindList.Frame.Visible = Library.ShowKeybinds and shown > 0
 end
 Library.RefreshBindList = function() RefreshBindList() end
 
 function Library:CreateKeybindList()
 	if Library.KeybindList then return end
+	local mobile = IsTouchOnly()
 	local Screen = New("ScreenGui", {Name = "PrismaKeybinds", IgnoreGuiInset = true, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, ResetOnSpawn = false, Enabled = not Library.UIHidden, Parent = GetParent()})
-	local Frame = New("Frame", {Size = UDim2.fromOffset(IsTouchOnly() and 200 or 190, 0), AutomaticSize = Enum.AutomaticSize.Y, Position = UDim2.new(0, 16, 0.3, 0), BackgroundTransparency = 0.04, Active = true, Visible = false, Theme = {BackgroundColor3 = "Background"}, Parent = Screen})
-	Corner(Frame, 5)
+	local Frame = New("Frame", {Size = UDim2.fromOffset(mobile and 190 or 210, 0), AutomaticSize = Enum.AutomaticSize.Y, Position = UDim2.new(0, 16, 0.35, 0), Active = true, Visible = false, Theme = {BackgroundColor3 = "Background"}, Parent = Screen})
+	Corner(Frame, 4)
 	Stroke(Frame, "Stroke", 0)
-	Padding(Frame, 0, 0, 6, 0)
 	ListLayout(Frame, 0)
-	local Header = New("Frame", {Size = UDim2.new(1, 0, 0, 32), BackgroundTransparency = 1, LayoutOrder = 0, Parent = Frame})
-	IconImage(Header, "keyboard", 14, {Position = UDim2.new(0, 12, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), Theme = {ImageColor3 = "Accent"}})
-	local Title = New("TextLabel", {Text = "Keybinds", Font = Config.FontBold, TextSize = 13, Size = UDim2.new(1, -40, 1, 0), Position = UDim2.fromOffset(32, 0), TextXAlignment = Enum.TextXAlignment.Left, Parent = Header})
+	local Header = New("Frame", {Size = UDim2.new(1, 0, 0, 28), BackgroundTransparency = 1, LayoutOrder = 0, Parent = Frame})
+	local Title = New("TextLabel", {Text = mobile and "Quick toggles" or "Keybinds", TextSize = 14, Size = UDim2.new(1, -20, 1, 0), Position = UDim2.fromOffset(10, 0), TextXAlignment = Enum.TextXAlignment.Left, Parent = Header})
+	New("Frame", {Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 1, -1), Theme = {BackgroundColor3 = "Stroke"}, Parent = Header})
 	local Container = New("Frame", {Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = 1, Parent = Frame})
-	Padding(Container, 4, 6, 0, 6)
-	ListLayout(Container, 2)
-	MakeDraggable(Frame, Frame)
+	Padding(Container, 6, 8, 8, 8)
+	ListLayout(Container, mobile and 4 or 2)
+	MakeDraggable(Header, Frame)
 	Library.KeybindList = {Frame = Frame, Container = Container, Screen = Screen, Title = Title}
 	OnThemeChanged(RefreshBindList)
 end
 
 local function CreateBindRow(name, entry)
-	local Row = New("TextButton", {Name = name, Size = UDim2.new(1, 0, 0, 24), BackgroundTransparency = 1, Visible = false, Theme = {BackgroundColor3 = "Container"}, Parent = Library.KeybindList.Container})
-	Corner(Row, 3)
-	local Dot = New("Frame", {Size = UDim2.fromOffset(6, 6), Position = UDim2.new(0, 8, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), Theme = {BackgroundColor3 = "TextMuted"}, Parent = Row})
-	Corner(Dot, 3)
-	local LName = New("TextLabel", {Text = name, TextSize = 13, Size = UDim2.new(1, -84, 1, 0), Position = UDim2.fromOffset(22, 0), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Theme = {TextColor3 = "TextDark"}, Parent = Row})
-	local LKey = New("TextLabel", {Font = Config.FontBold, TextSize = 11, Size = UDim2.fromOffset(0, 18), AutomaticSize = Enum.AutomaticSize.X, Position = UDim2.new(1, -6, 0.5, 0), AnchorPoint = Vector2.new(1, 0.5), BackgroundTransparency = 0, Theme = {BackgroundColor3 = "Field", TextColor3 = "TextDark"}, Parent = Row})
-	Corner(LKey, 3)
-	Padding(LKey, 0, 6, 0, 6)
-	entry.Row, entry.Dot, entry.NameLabel, entry.KeyLabel = Row, Dot, LName, LKey
+	local Container = Library.KeybindList.Container
+	if IsTouchOnly() then
+		-- big tap target: name + switch
+		local Row = New("TextButton", {Name = name, Size = UDim2.new(1, 0, 0, 30), Visible = false, Theme = {BackgroundColor3 = "Container"}, Parent = Container})
+		Corner(Row, 2)
+		Stroke(Row, "Stroke", 0)
+		local LName = New("TextLabel", {Text = name, TextSize = 14, TextTransparency = 0.4, Size = UDim2.new(1, -52, 1, 0), Position = UDim2.fromOffset(8, 0), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Parent = Row})
+		local Switch = New("Frame", {Size = UDim2.fromOffset(28, 16), Position = UDim2.new(1, -8, 0.5, 0), AnchorPoint = Vector2.new(1, 0.5), Theme = {BackgroundColor3 = "Container"}, Parent = Row})
+		New("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Switch})
+		Padding(Switch, 2, 2, 2, 2)
+		Stroke(Switch, "Stroke", 0)
+		local Ball = New("Frame", {Size = UDim2.fromScale(1, 1), SizeConstraint = Enum.SizeConstraint.RelativeYY, Theme = {BackgroundColor3 = "Text"}, Parent = Switch})
+		New("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Ball})
+		entry.Row, entry.NameLabel, entry.Switch, entry.Ball = Row, LName, Switch, Ball
+		Track(Row.MouseButton1Click, function()
+			if entry.Toggle then entry.Toggle() end
+		end)
+		return
+	end
+	local Row = New("TextButton", {Name = name, Size = UDim2.new(1, 0, 0, 18), BackgroundTransparency = 1, Visible = false, Parent = Container})
+	local LName = New("TextLabel", {Text = name, TextSize = 14, RichText = true, TextTransparency = 0.45, Size = UDim2.fromScale(1, 1), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Parent = Row})
+	entry.Row, entry.NameLabel = Row, LName
 	Track(Row.MouseButton1Click, function()
 		if entry.Toggle then entry.Toggle() end
-	end)
-	Track(Row.MouseEnter, function()
-		if entry.Toggle then Tween(Row, {BackgroundTransparency = 0.4}, 0.15) end
-	end)
-	Track(Row.MouseLeave, function()
-		Tween(Row, {BackgroundTransparency = 1}, 0.2)
 	end)
 end
 
@@ -1371,6 +1511,7 @@ function Library:RegisterBind(name, data)
 		if data.Mode ~= nil then entry.Mode = data.Mode end
 		if data.Active ~= nil then entry.Active = data.Active end
 		if data.Pinned ~= nil then entry.Pinned = data.Pinned end
+		if data.MobilePinned ~= nil then entry.MobilePinned = data.MobilePinned end
 		if data.Toggle ~= nil then entry.Toggle = data.Toggle end
 	end
 	RefreshBindList()
@@ -2269,6 +2410,40 @@ local function AttachElements(Section, Content, ctx)
 				PushBind()
 			end
 			PushBind()
+		elseif bindable and ctx.Bindable and IsTouchOnly() then
+			-- mobile has no keyboard: a "Pin" chip puts this toggle in the floating Quick toggles panel
+			local bindName = text
+			if Library.Binds[bindName] then bindName = text .. " (" .. tostring(ctx.SectionName) .. ")" end
+			ToggleObj.BindName = bindName
+			local pinFlag = flag .. "_Pinned"
+			local pinned = Library.Flags[pinFlag] == true
+			Library.Defaults[pinFlag] = false
+			Library.Flags[pinFlag] = pinned
+			Label.Size = UDim2.new(1, -110, 1, 0)
+			local PinBtn, PinStroke = KeyChip(Btn, {Size = UDim2.fromOffset(0, 18), Position = UDim2.new(1, -38, 0, 0), AnchorPoint = Vector2.new(1, 0)})
+			local function PushPin()
+				PinBtn.Text = pinned and "Pinned" or "Pin"
+				Tween(PinBtn, {TextColor3 = pinned and Theme.Accent or Theme.TextMuted}, 0.15)
+				Tween(PinStroke, {Color = pinned and Theme.Accent or Theme.Stroke}, 0.15)
+				Library:RegisterBind(bindName, {
+					Key = "Unknown", Mode = "Toggle", Active = toggled, MobilePinned = pinned,
+					Toggle = function() SetToggled(not toggled) end,
+				})
+			end
+			Track(PinBtn.MouseButton1Click, function()
+				pinned = not pinned
+				Library.Flags[pinFlag] = pinned
+				Library.Unsaved = true
+				PushPin()
+				if pinned and not Library.ShowKeybinds then
+					Library:Notify("Quick toggles", "Turn on the keybind list in Settings to see pinned toggles", 4)
+				end
+			end)
+			Library.Signals[pinFlag] = function(v)
+				pinned = v == true
+				PushPin()
+			end
+			PushPin()
 		end
 
 		Track(Btn.MouseButton1Click, function()
@@ -2298,7 +2473,7 @@ local function AttachElements(Section, Content, ctx)
 			return d
 		end
 		function ToggleObj:Keybind(defaultKey, mode)
-			if not ToggleObj.BindName then return ToggleObj end
+			if not ToggleObj.BindName or not SetBindMode then return ToggleObj end
 			if not hasSavedBind and defaultKey then
 				bindKey = defaultKey
 				ToggleObj.KeybindValue = bindKey
@@ -3151,7 +3326,10 @@ function Library:CreateWindow(options)
 		end)
 	end
 
-	local TOP, SIDE, FOOT = 48, 190, 20
+	local vpNow = workspace.CurrentCamera.ViewportSize
+	-- phones / small screens: icon-only sidebar so the pages get the room
+	local Compact = IsTouchOnly() or vpNow.X < 800
+	local TOP, SIDE, FOOT = 48, Compact and 48 or 190, 20
 
 	local ScreenGui = New("ScreenGui", {Name = Config.Name, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, IgnoreGuiInset = true, ResetOnSpawn = false, DisplayOrder = 10, Parent = GetParent()})
 	Library.ScreenGui = ScreenGui
@@ -3161,6 +3339,10 @@ function Library:CreateWindow(options)
 	local MainScale = New("UIScale", {Scale = EffectiveScale(), Parent = Holder})
 	Library._MainScale = MainScale
 	Library._SetScale = MainScale
+	if Compact then
+		local sc = math.max(EffectiveScale(), 0.01)
+		Holder.Size = UDim2.fromOffset(math.clamp(math.floor(vpNow.X / sc * 0.94), 560, 760), math.clamp(math.floor(vpNow.Y / sc * 0.9), 340, 500))
+	end
 	local Window = New("Frame", {Name = "MainWindow", Size = UDim2.fromScale(1, 1), Active = true, Theme = {BackgroundColor3 = "Background"}, Parent = Holder})
 	Corner(Window, 4)
 	Stroke(Window, "Stroke", 0)
@@ -3216,7 +3398,7 @@ function Library:CreateWindow(options)
 	local SetStack = New("Frame", {Size = UDim2.fromScale(1, 1), Position = UDim2.fromScale(1, 0), BackgroundTransparency = 1, Parent = Clip})
 
 	local TabContainer = New("ScrollingFrame", {Size = UDim2.new(1, 0, 1, -50), ScrollBarThickness = 0, Parent = MainStack})
-	Padding(TabContainer, 8, 8, 8, 8)
+	Padding(TabContainer, 8, Compact and 6 or 8, 8, Compact and 6 or 8)
 	ListLayout(TabContainer, 2)
 
 	-- profile row at the bottom of the sidebar, opens settings
@@ -3242,11 +3424,25 @@ function Library:CreateWindow(options)
 		Tween(Gear, {Rotation = 0, ImageColor3 = Theme.TextDark}, 0.3)
 	end)
 	ApplyTooltip(Profile, "Settings")
+	if Compact then
+		ProfileName.Visible = false
+		Gear.Visible = false
+		Avatar.Position = UDim2.fromScale(0.5, 0.5)
+		Avatar.AnchorPoint = Vector2.new(0.5, 0.5)
+		Profile.Size = UDim2.new(1, -12, 0, 36)
+		Profile.Position = UDim2.new(0, 6, 1, -43)
+	end
 
 	local BackBtn = New("TextButton", {Size = UDim2.new(1, -16, 0, 30), Position = UDim2.fromOffset(8, 8), BackgroundTransparency = 1, Theme = {BackgroundColor3 = "Container"}, Parent = SetStack})
 	Corner(BackBtn, SMALL_R)
 	local BackArrow = New("ImageLabel", {Image = ASSET_CHEVRON, Size = UDim2.fromOffset(14, 14), Rotation = 90, Position = UDim2.new(0, 8, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), Theme = {ImageColor3 = "TextDark"}, Parent = BackBtn})
-	New("TextLabel", {Text = "Settings", TextSize = 15, Size = UDim2.new(1, -34, 1, 0), Position = UDim2.fromOffset(28, 0), TextXAlignment = Enum.TextXAlignment.Left, Parent = BackBtn})
+	New("TextLabel", {Text = "Settings", TextSize = 15, Visible = not Compact, Size = UDim2.new(1, -34, 1, 0), Position = UDim2.fromOffset(28, 0), TextXAlignment = Enum.TextXAlignment.Left, Parent = BackBtn})
+	if Compact then
+		BackBtn.Size = UDim2.new(1, -12, 0, 30)
+		BackBtn.Position = UDim2.fromOffset(6, 8)
+		BackArrow.Position = UDim2.fromScale(0.5, 0.5)
+		BackArrow.AnchorPoint = Vector2.new(0.5, 0.5)
+	end
 	Track(BackBtn.MouseEnter, function()
 		Tween(BackBtn, {BackgroundTransparency = 0}, 0.12)
 		Tween(BackArrow, {ImageColor3 = Theme.Text}, 0.12)
@@ -3258,7 +3454,7 @@ function Library:CreateWindow(options)
 	ApplyTooltip(BackBtn, "Back to the menu")
 	New("Frame", {Size = UDim2.new(1, 0, 0, 1), Position = UDim2.fromOffset(0, 46), Theme = {BackgroundColor3 = "Stroke"}, Parent = SetStack})
 	local SetContainer = New("ScrollingFrame", {Size = UDim2.new(1, 0, 1, -47), Position = UDim2.fromOffset(0, 47), ScrollBarThickness = 0, Parent = SetStack})
-	Padding(SetContainer, 8, 8, 8, 8)
+	Padding(SetContainer, 8, Compact and 6 or 8, 8, Compact and 6 or 8)
 	ListLayout(SetContainer, 2)
 
 	------------------------------------------------------------------ pages + overlays
@@ -3393,7 +3589,7 @@ function Library:CreateWindow(options)
 
 	
 	local MiniGui = New("ScreenGui", {Name = "PhantomMiniButton", IgnoreGuiInset = true, ResetOnSpawn = false, Enabled = not Library.UIHidden, Parent = GetParent()})
-	local MiniButton = New("ImageButton", {Size = UDim2.fromOffset(48, 48), Position = UDim2.new(0, 20, 0.5, -24), Image = ASSET_LOGO, ScaleType = Enum.ScaleType.Fit, BackgroundTransparency = 0.05, Active = true, Theme = {BackgroundColor3 = "Background", ImageColor3 = "Accent"}, Parent = MiniGui})
+	local MiniButton = New("ImageButton", {Visible = Library.MiniButtonEnabled, Size = UDim2.fromOffset(48, 48), Position = UDim2.new(0, 20, 0.5, -24), Image = ASSET_LOGO, ScaleType = Enum.ScaleType.Fit, BackgroundTransparency = 0.05, Active = true, Theme = {BackgroundColor3 = "Background", ImageColor3 = "Accent"}, Parent = MiniGui})
 	Corner(MiniButton, 24)
 	Padding(MiniButton, 9, 9, 9, 9)
 	local MiniStroke = Stroke(MiniButton, "Accent", 0.2, 2)
@@ -3477,6 +3673,13 @@ function Library:CreateWindow(options)
 			Tween(Btn, {BackgroundTransparency = active and 0 or 1}, t)
 			Tween(Title, {TextTransparency = active and 0 or (hovered and 0.2 or 0.5)}, t)
 			if Ico then Tween(Ico, {ImageTransparency = (active or hovered) and 0 or 0.5, ImageColor3 = active and Theme.Accent or Theme.Text}, t) end
+		end
+		if Compact and Ico then
+			Title.Visible = false
+			Ico.Position = UDim2.fromScale(0.5, 0.5)
+			Ico.AnchorPoint = Vector2.new(0.5, 0.5)
+			Btn.Size = UDim2.new(1, 0, 0, 34)
+			ApplyTooltip(Btn, name)
 		end
 		Track(Btn.MouseEnter, function() hovered = true Visual() end)
 		Track(Btn.MouseLeave, function() hovered = false Visual() end)
@@ -3697,25 +3900,45 @@ function Library:CreateWindow(options)
 		local Configs = CreateTab("Configs", "layers", SetState, true)
 
 		
+		------------------------------------------------ General
 		local Iface = General:Section("Interface")
-		Iface:Toggle("Watermark", "WatermarkToggle", Library.WatermarkEnabled, "Show the FPS / ping bar in the corner", function(state)
+		Iface:Toggle("Watermark", "WatermarkToggle", Library.WatermarkEnabled, "FPS / ping bar in the corner", function(state)
 			Library.WatermarkEnabled = state
 			if Library.Watermark then Library.Watermark.Visible = state end
 			MarkInterface()
 		end)
-		Iface:Toggle("Console", "ConsoleToggle", false, "Show the console window (info, warnings, errors)", function(state)
-			Library:SetConsoleVisible(state)
+		Iface:Toggle("Reopen button", "MiniButtonToggle", Library.MiniButtonEnabled, "Floating logo button that opens the menu (handy on mobile)", function(state)
+			Library.MiniButtonEnabled = state
+			MiniButton.Visible = state
+			MarkInterface()
+		end)
+		Iface:Toggle("Tooltips", "TooltipsToggle", Library.TooltipsEnabled, "Show hints when hovering things", function(state)
+			Library.TooltipsEnabled = state
+			if not state then HideTooltip() end
+			MarkInterface()
 		end)
 		Iface:Toggle("Animations", "AnimationsToggle", Library.Animations, "Turn off for instant transitions", function(state)
 			Library.Animations = state
 			MarkInterface()
 		end)
+		Iface:Toggle("Console", "ConsoleToggle", false, "Window with info, warnings and errors", function(state)
+			Library:SetConsoleVisible(state)
+		end)
+
+		local Notes = General:Section("Notifications")
+		Notes:Dropdown("Position", "NotifySide", {"Bottom right", "Top right", "Bottom left", "Top left"}, Library.NotifySide, "Corner the notifications stack in", function(side)
+			if type(side) ~= "string" then return end
+			Library.NotifySide = side
+			MarkInterface()
+		end)
+		Notes:Button("Send a test notification", nil, function()
+			Library:Notify("Test", "This is how notifications look.", 3, "Success")
+		end)
 
 		local Session = General:Section("Session", "Right")
+		Session:Row("Profiles folder", Config.ConfigFolder)
+		Session:Divider()
 		Session:Label("Unloading removes the hub and everything it added to the game.")
-		Session:Button("Preview notification", "Shows a sample notification", function()
-			Library:Notify("Looking good", "This is how notifications appear.", 3, "Success")
-		end)
 		local armed = false
 		local UnloadBtn
 		UnloadBtn = Session:Button("Unload hub", "Click twice to confirm", function()
@@ -3735,41 +3958,65 @@ function Library:CreateWindow(options)
 		end)
 		ThemeBind(UnloadBtn, {TextColor3 = "Danger"})
 
-		
+		------------------------------------------------ Appearance
 		local ThemeSec = Appearance:Section("Theme")
-		local ThemePicker = ThemeSec:Dropdown("Theme", "SelectedTheme", ThemeOrder, Library.CurrentTheme, "Every theme shares the same greys, only the accent changes", function(name)
+		ThemeSec:Dropdown("Preset", "SelectedTheme", ThemeOrder, Library.CurrentTheme, "Pick an accent preset", function(name)
 			if type(name) == "string" and (name ~= Library.CurrentTheme or Library.CustomAccent) then Library:SetTheme(name) end
 		end)
-
-		local AccentSec = Appearance:Section("Accent")
-		local AccentPicker = AccentSec:ColorPicker("Accent color", "MenuAccentColor", Theme.Accent, "Change the highlight color", function(col)
+		local AccentPicker = ThemeSec:ColorPicker("Accent", "MenuAccentColor", Theme.Accent, "Main highlight color", function(col)
 			if col ~= Theme.Accent then Library:UpdateTheme(col) end
-		end)
-		AccentSec:Button("Use the theme's accent", "Drop the custom color", function()
-			Library:SetTheme(Library.CurrentTheme, true)
 		end)
 		OnThemeChanged(function()
 			if AccentPicker:Get() ~= Theme.Accent then AccentPicker:Set(Theme.Accent, true) end
 		end)
 
-		local WinSec = Appearance:Section("Window", "Right")
-		WinSec:Slider("Interface scale", "InterfaceScale", 60, 140, math.round(Library.UserScale * 100), 5, "Size of the whole menu in percent", function(v)
+		-- every base color can be overridden; overrides survive switching presets
+		local ColorSec = Appearance:Section("Colors")
+		local colorPickers = {}
+		local function ColorOption(label, flagName, keys, tip)
+			local picker = ColorSec:ColorPicker(label, flagName, Theme[keys[1]], tip, function(col)
+				if col == Theme[keys[1]] then return end
+				for _, key in ipairs(keys) do Library.CustomColors[key] = col end
+				Library:SetColor(keys[1], col)
+			end)
+			table.insert(colorPickers, {Picker = picker, Key = keys[1]})
+		end
+		ColorOption("Background", "ColorBackground", {"Background"}, "Window and page background")
+		ColorOption("Panels", "ColorPanels", {"Section", "Sidebar", "Topbar"}, "Groupboxes, sidebar, top bar and footer")
+		ColorOption("Controls", "ColorControls", {"Container"}, "Buttons, switches, sliders, boxes")
+		ColorOption("Outline", "ColorOutline", {"Stroke"}, "Borders and divider lines")
+		ColorOption("Text", "ColorText", {"Text"}, "Main text")
+		ColorOption("Dim text", "ColorTextDark", {"TextDark"}, "Labels, hints and inactive items")
+		ColorSec:Button("Reset colors", "Back to the preset's original colors", function()
+			Library:ResetColors()
+			for _, cp in ipairs(colorPickers) do cp.Picker:Set(Theme[cp.Key], true) end
+			AccentPicker:Set(Theme.Accent, true)
+		end)
+
+		local StyleSec = Appearance:Section("Style", "Right")
+		StyleSec:Dropdown("Font", "FontChoice", FontOrder, Library.FontName, "Code is the Obsidian look", function(name)
+			if type(name) == "string" and name ~= Library.FontName then Library:SetFont(name) end
+		end)
+		StyleSec:Dropdown("Corners", "CornerStyle", {"Sharp", "Default", "Round"}, Library.Rounding, "How rounded boxes and buttons are", function(style)
+			if type(style) == "string" and style ~= Library.Rounding then Library:SetRounding(style) end
+		end)
+		StyleSec:Slider("Interface scale", "InterfaceScale", 60, 140, math.round(Library.UserScale * 100), 5, "Size of the whole menu in percent", function(v)
 			Library.UserScale = v / 100
 			if Library.Open then Tween(MainScale, {Scale = EffectiveScale()}, 0.3) end
 			MarkInterface()
 		end)
-		WinSec:Toggle("Background blur", "BlurToggle", Library.BlurEnabled, "Blur the game behind the open menu", function(state)
+		StyleSec:Toggle("Background blur", "BlurToggle", Library.BlurEnabled, "Blur the game behind the open menu", function(state)
 			Library.BlurEnabled = state
 			SetBlur(state and Library.Open)
 			MarkInterface()
 		end)
-		WinSec:Toggle("Seasonal decorations", "DecorToggle", Library.DecorEnabled, "Cobwebs on Halloween, snow on Christmas", function(state)
+		StyleSec:Toggle("Seasonal decorations", "DecorToggle", Library.DecorEnabled, "Cobwebs on Halloween, snow on Christmas", function(state)
 			Library.DecorEnabled = state
 			RefreshDecor()
 			MarkInterface()
 		end)
 
-		
+		------------------------------------------------ Keybinds
 		local MenuKeys = Keys:Section("Menu")
 		MenuKeys:KeyPicker("Open / close menu", Config.Keybind, function(k)
 			if k == Enum.KeyCode.Unknown then return end
@@ -3782,17 +4029,25 @@ function Library:CreateWindow(options)
 			Library:Notify("Keybinds", k == Enum.KeyCode.Unknown and "Hide key cleared" or ("Hide key set to " .. k.Name), 2, "Success")
 			MarkInterface()
 		end, true)
-		MenuKeys:Label("Backspace clears a key. Escape cancels.")
+		MenuKeys:Label("Backspace clears a key, Escape cancels.")
 
-		local ListSec = Keys:Section("Keybind list", "Right")
-		ListSec:Toggle("Show keybind list", "KeybindListToggle", Library.ShowKeybinds, "Floating list of your active binds", function(state)
+		local ListSec = Keys:Section(IsTouchOnly() and "Quick toggles" or "Keybind list", "Right")
+		ListSec:Toggle(IsTouchOnly() and "Show quick toggles" or "Show keybind list", "KeybindListToggle", Library.ShowKeybinds, "Floating panel with your binds", function(state)
 			Library.ShowKeybinds = state
 			RefreshBindList()
 			MarkInterface()
 		end)
-		ListSec:Label("Right click a bind chip to switch it between Toggle, Hold and Always.")
+		ListSec:Button("Reset panel position", nil, function()
+			if not Library.KeybindList then Library:CreateKeybindList() end
+			Tween(Library.KeybindList.Frame, {Position = UDim2.new(0, 16, 0.35, 0)}, 0.3)
+		end)
+		if IsTouchOnly() then
+			ListSec:Label("Tap Pin next to any toggle. Pinned toggles show up in the Quick toggles panel so you can switch them with one tap.")
+		else
+			ListSec:Label("Click a key box to bind it. Right click it to switch between Toggle, Hold and Always.")
+		end
 
-		
+		------------------------------------------------ Configs
 		local Profiles = Configs:Section("Profiles")
 		local NameInput = Profiles:TextBox("Name", "ConfigNameFlag", "New profile name", "Name for a new profile", function() end)
 		local list = Library:GetConfigs()
