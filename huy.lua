@@ -524,7 +524,7 @@ end
 -- UI hide / theme / style API
 ----------------------------------------------------------------------------------------------------
 
-local OwnedScreens = {"PhantomMiniButton", "PhantomTooltip", "PhantomNotifications", "PhantomWatermark", "PhantomConsole", "PrismaKeybinds"}
+local OwnedScreens = {"PhantomMiniButton", "PhantomTooltip", "PhantomNotifications", "PhantomWatermark", "PhantomConsole", "PrismaKeybinds", "PhantomDraggableLabel"}
 
 function Library:SetUIHidden(state)
 	state = state and true or false
@@ -1140,7 +1140,17 @@ end
 
 local Tooltip = {}
 
+-- scripts can register cleanup that runs when the hub is unloaded
+Library.UnloadCallbacks = {}
+function Library:OnUnload(fn)
+	if type(fn) == "function" then table.insert(Library.UnloadCallbacks, fn) end
+end
+
 function Library:Unload()
+	local callbacks = Library.UnloadCallbacks
+	Library.UnloadCallbacks = {}
+	for _, fn in ipairs(callbacks) do pcall(fn) end
+	Library.Unloaded = true
 	for _, conn in ipairs(Library.Connections) do pcall(function() conn:Disconnect() end) end
 	Library.Connections = {}
 	if Drag_Driver then
@@ -1437,6 +1447,11 @@ local NotifyIcons = {Info = "info", Success = "sparkles", Warning = "bell", Erro
 local NotifyOrder = 0
 
 function Library:Notify(title, text, duration, kind)
+	if type(title) == "table" then
+		local t = title
+		title, text = t.Title, t.Description or t.Content or t.Text
+		duration, kind = t.Duration or t.Time, t.Type or t.Kind
+	end
 	title = tostring(title or "Notice")
 	text = tostring(text or "")
 	duration = tonumber(duration) or 3
@@ -1815,6 +1830,21 @@ function Library:CreateConsole()
 
 	Library.Console = {Screen = Screen, Frame = Frame, SetOpen = SetOpen}
 	return Library.Console
+end
+
+function Library:AddDraggableLabel(text)
+	local Gui = New("ScreenGui", {Name = "PhantomDraggableLabel", IgnoreGuiInset = true, ResetOnSpawn = false, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, Parent = GetParent()})
+	local Frame = New("Frame", {Size = UDim2.fromOffset(0, 0), AutomaticSize = Enum.AutomaticSize.XY, Position = UDim2.new(0, 16, 0, 90), Active = true, BackgroundTransparency = 0.05, Theme = {BackgroundColor3 = "Background"}, Parent = Gui})
+	Corner(Frame, 4)
+	Stroke(Frame, "Stroke", 0)
+	Padding(Frame, 6, 10, 6, 10)
+	local Label = New("TextLabel", {Text = tostring(text or ""), Size = UDim2.fromOffset(0, 0), AutomaticSize = Enum.AutomaticSize.XY, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, Parent = Frame})
+	MakeDraggable(Frame, Frame)
+	local obj = {Frame = Frame, Gui = Gui}
+	function obj:SetText(t) Label.Text = tostring(t) end
+	function obj:SetVisible(v) Frame.Visible = v and true or false end
+	function obj:Destroy() Gui:Destroy() end
+	return obj
 end
 
 function Library:SetConsoleVisible(state)
@@ -2751,6 +2781,23 @@ local function AttachElements(Section, Content, ctx)
 			local d = CreateDropdownElement(txt, dflag, opts, def, nil, cb, Inner, Section, isMulti, Inner, SubOrder())
 			if toggled then ToggleAnim() end
 			return d
+		end
+		-- any elements (toggles, sliders, dropdowns, dividers...) that fold out under this toggle
+		-- and only show while it's on: local opts = MyToggle:Options() opts:Slider(...)
+		local subSection
+		function ToggleObj:Options()
+			if not subSection then
+				SubOrder()
+				subSection = AttachElements({}, Inner, {
+					SectionName = ctx.SectionName,
+					Bindable = ctx.Bindable,
+					Page = ctx.Page,
+					OpenMenu = ctx.OpenMenu,
+					AddItem = AddItem,
+				})
+				if toggled then ToggleAnim() end
+			end
+			return subSection
 		end
 		function ToggleObj:Keybind(defaultKey, mode)
 			if not ToggleObj.BindName or not SetBindMode then return ToggleObj end
@@ -4477,7 +4524,7 @@ function Library:CreateWindow(options)
 	end
 
 	
-	local InfoTab = WindowObj:Tab("Info", "89366818397358")
+	local InfoTab = WindowObj:Tab("Info", "info")
 	PopulateSettings()
 
 	
