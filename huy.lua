@@ -126,8 +126,8 @@ end
 
 ----------------------------------------------------------------------------------------------------
 -- UI styles: whole-look presets. The accent theme sits on top of whichever style is active.
---   Cards      each element sits on its own card (Fluent / Modern / OG)
---   GroupPanel sections are boxed panels with a title line (Obsidian / OG)
+--   Cards      each element sits on its own card (Fluent)
+--   GroupPanel sections are boxed panels (Obsidian)
 --   Dim        how faded an "off" toggle label is
 --   Slider     "bar" = value written inside a 15px bar, "thin" = 4px rail + round thumb
 --   WindowT    window transparency (Fluent's see-through acrylic look)
@@ -138,26 +138,12 @@ end
 --   TitleSize / TitleDim / GroupLine   groupbox title look     Gradient   soft shade on controls
 --   TopAccent  accent line under the top bar     TopLogo / TopSize   top bar logo / title size
 local Styles = {
-	-- your original library: red Phantom colors, Gotham, boxed elements, checkbox toggles
-	["OG"] = {
-		Font = "Gotham", Rounding = "Round", Cards = true, CardPad = 8, CardT = 0, CardStrokeT = 0.5,
-		GroupPanel = true, GroupLine = false, TitleSize = 13, TitleDim = true,
-		StrokeT = 0.5, WindowT = 0.1, Dim = 0, Slider = "og", Toggle = "check",
-		ButtonCenter = true, CenterLabels = false, Gradient = false,
-		TabIcons = true, TabPill = false, Dividers = true, FlatChrome = false, WindowGradient = false,
-		TopAccent = true, TopLogo = true, TopSize = 15, PanelStrokeT = 0,
-		Base = {
-			Background = "#080505", Sidebar = "#0c0707", Topbar = "#120a0a", Section = "#1a0e0e",
-			Container = "#140b0b", Card = "#140b0b", Stroke = "#2e1717",
-			Text = "#ffffff", TextDark = "#997373", TextMuted = "#5e4545",
-		},
-	},
 	["Obsidian"] = {
 		Font = "Code", Rounding = "Default", Cards = false, CardPad = 0, CardT = 1, CardStrokeT = 1,
-		GroupPanel = true, GroupLine = true, TitleSize = 15, TitleDim = false,
+		GroupPanel = true, GroupLine = false, TitleSize = 15, TitleDim = false,
 		StrokeT = 0, WindowT = 0, Dim = 0.4, Slider = "bar", Toggle = "switch",
 		ButtonCenter = true, CenterLabels = false, Gradient = false,
-		TabIcons = true, TabPill = false, Dividers = true, FlatChrome = false, WindowGradient = false,
+		TabIcons = true, TabPill = false, Dividers = false, FlatChrome = false, WindowGradient = false,
 		TopAccent = false, TopLogo = true, TopSize = 20, PanelStrokeT = 0,
 		Base = {},
 	},
@@ -166,7 +152,7 @@ local Styles = {
 		GroupPanel = false, GroupLine = false, TitleSize = 17, TitleDim = false,
 		StrokeT = 0.55, WindowT = 0.06, Dim = 0, Slider = "thin", Toggle = "switch",
 		ButtonCenter = false, CenterLabels = false, Gradient = false,
-		TabIcons = true, TabPill = false, Dividers = true, FlatChrome = false, WindowGradient = false,
+		TabIcons = true, TabPill = false, Dividers = false, FlatChrome = false, WindowGradient = false,
 		TopAccent = false, TopLogo = true, TopSize = 16, PanelStrokeT = 0,
 		Base = {
 			Background = "#202020", Sidebar = "#1c1c1c", Topbar = "#1c1c1c", Section = "#202020",
@@ -174,23 +160,8 @@ local Styles = {
 			Text = "#f0f0f0", TextDark = "#aaaaaa", TextMuted = "#787878",
 		},
 	},
-	-- Modern: one smooth gradient surface, no lines, soft rounded panels,
-	-- accent-tinted tab pills, capsule sliders with a gradient fill
-	["Modern"] = {
-		Font = "Builder Sans Bold", Rounding = "Soft", Cards = false, CardPad = 0, CardT = 1, CardStrokeT = 1,
-		GroupPanel = true, GroupLine = false, TitleSize = 16, TitleDim = false,
-		StrokeT = 1, WindowT = 0, Dim = 0.3, Slider = "capsule", Toggle = "switch",
-		ButtonCenter = true, CenterLabels = false, Gradient = false,
-		TabIcons = true, TabPill = true, Dividers = false, FlatChrome = true, WindowGradient = true,
-		TopAccent = false, TopLogo = true, TopSize = 17, PanelStrokeT = 1,
-		Base = {
-			Background = "#17171d", Sidebar = "#17171d", Topbar = "#17171d", Section = "#1f1f27",
-			Container = "#2a2a34", Card = "#1f1f27", Stroke = "#2e2e38",
-			Text = "#f4f4f7", TextDark = "#9a9aa8", TextMuted = "#62626e",
-		},
-	},
 }
-local StyleOrder = {"OG", "Obsidian", "Fluent", "Modern"}
+local StyleOrder = {"Obsidian", "Fluent"}
 for _, st in pairs(Styles) do
 	for k, v in pairs(st.Base) do st.Base[k] = Color3.fromHex(v) end
 end
@@ -1465,7 +1436,7 @@ function Library:InitWatermark()
 	ListLayout(Row, 9, true, nil, Enum.VerticalAlignment.Center)
 	local order = 0
 	local function Next() order += 1 return order end
-	New("ImageLabel", {Image = ASSET_LOGO, Size = UDim2.fromOffset(16, 16), ScaleType = Enum.ScaleType.Fit, LayoutOrder = Next(), Theme = {ImageColor3 = "Accent"}, Parent = Row})
+	New("ImageLabel", {Image = ASSET_LOGO, Size = UDim2.fromOffset(16, 16), ScaleType = Enum.ScaleType.Fit, LayoutOrder = Next(), Parent = Row})
 	local function Chip(bold)
 		return New("TextLabel", {Size = UDim2.fromOffset(0, 32), AutomaticSize = Enum.AutomaticSize.X, TextSize = 13, RichText = true, Font = bold and Config.FontBold or Config.FontMain, LayoutOrder = Next(), Parent = Row})
 	end
@@ -1558,7 +1529,6 @@ function Library:CreateKeybindList()
 	ListLayout(Frame, 0)
 	local Header = New("Frame", {Size = UDim2.new(1, 0, 0, 28), BackgroundTransparency = 1, LayoutOrder = 0, Parent = Frame})
 	local Title = New("TextLabel", {Text = mobile and "Quick toggles" or "Keybinds", TextSize = 14, Size = UDim2.new(1, -20, 1, 0), Position = UDim2.fromOffset(10, 0), TextXAlignment = Enum.TextXAlignment.Left, Parent = Header})
-	New("Frame", {Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 1, -1), Theme = {BackgroundColor3 = "Stroke"}, Parent = Header})
 	local Container = New("Frame", {Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = 1, Parent = Frame})
 	Padding(Container, 6, 8, 8, 8)
 	ListLayout(Container, mobile and 4 or 2)
@@ -1643,7 +1613,7 @@ function Library:CreateConsole()
 	local Header = New("Frame", {Size = UDim2.new(1, 0, 0, HEADER_H), Active = true, Theme = {BackgroundColor3 = "Topbar"}, Parent = Frame})
 	Corner(Header, 5)
 	local HeaderFill = New("Frame", {Size = UDim2.new(1, 0, 0, 8), Position = UDim2.new(0, 0, 1, -8), Theme = {BackgroundColor3 = "Topbar"}, Parent = Header})
-	local Divider = New("Frame", {Size = UDim2.new(1, 0, 0, 1), Position = UDim2.fromOffset(0, HEADER_H), Theme = {BackgroundColor3 = "Stroke"}, Parent = Frame})
+	local Divider = New("Frame", {Size = UDim2.new(1, 0, 0, 1), Position = UDim2.fromOffset(0, HEADER_H), BackgroundTransparency = 1, Parent = Frame})
 	MakeDraggable(Header, Frame)
 
 	local TitleRow = New("Frame", {Size = UDim2.new(0.5, 0, 1, 0), Position = UDim2.fromOffset(12, 0), BackgroundTransparency = 1, Parent = Header})
@@ -2310,7 +2280,6 @@ local function CreateSectionFrame(text, parent, order)
 		TextColor3 = function() return Style.TitleDim and Theme.TextDark or Theme.Text end,
 		Position = panel(UDim2.fromOffset(10, 0), UDim2.fromOffset(2, 0)),
 	}, Parent = Header})
-	New("Frame", {Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 1, -1), Theme = {BackgroundColor3 = "Stroke", BackgroundTransparency = function() return (Style.GroupPanel and Style.GroupLine) and 0 or 1 end}, Parent = Header})
 	local Content = New("Frame", {Name = "Content", Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = 1, Parent = Container})
 	New("UIPadding", {Theme = {
 		PaddingTop = panel(UDim.new(0, 8), UDim.new(0, 2)),
@@ -2375,7 +2344,7 @@ local function AttachElements(Section, Content, ctx)
 	end
 
 	function Section:Divider()
-		return New("Frame", {Size = UDim2.new(1, 0, 0, 1), LayoutOrder = NextOrder(), Theme = {BackgroundColor3 = "Stroke"}, Parent = Content})
+		return New("Frame", {Size = UDim2.new(1, 0, 0, 4), LayoutOrder = NextOrder(), BackgroundTransparency = 1, Parent = Content})
 	end
 
 	-- "+ text" / "~ text" / "- text" lines, used by the changelog
@@ -3527,7 +3496,7 @@ function Library:CreateWindow(options)
 	options = options or {}
 	if options.Name then Config.Name = options.Name end
 	if options.Brand then Config.Brand = options.Brand end
-	-- starting style ("OG", "Obsidian", "Fluent", "Modern"); a player's saved choice wins
+	-- starting style ("Obsidian" or "Fluent"); a player's saved choice wins
 	if options.Style and Styles[options.Style] then
 		Library.StyleName = options.Style
 		Style = Styles[options.Style]
@@ -3586,14 +3555,9 @@ function Library:CreateWindow(options)
 	local Topbar = New("Frame", {Size = UDim2.new(1, 0, 0, TOP), Theme = {BackgroundColor3 = "Topbar"}, Parent = Window})
 	Corner(Topbar, 4)
 	New("Frame", {Size = UDim2.new(1, 0, 0, 4), Position = UDim2.new(0, 0, 1, -4), Theme = {BackgroundColor3 = "Topbar"}, Parent = Topbar})
-	New("Frame", {Position = UDim2.fromOffset(0, TOP), Theme = {
-		BackgroundColor3 = function() return Style.TopAccent and Theme.Accent or Theme.Stroke end,
-		BackgroundTransparency = function() return (Style.Dividers == false and not Style.TopAccent) and 1 or 0 end,
-		Size = function() return UDim2.new(1, 0, 0, Style.TopAccent and 2 or 1) end,
-	}, Parent = Window})
 	local TitleRow = New("Frame", {Size = UDim2.new(0.5, 0, 1, 0), Position = UDim2.fromOffset(14, 0), BackgroundTransparency = 1, Parent = Topbar})
 	ListLayout(TitleRow, 8, true, nil, Enum.VerticalAlignment.Center)
-	New("ImageLabel", {Image = ASSET_LOGO, Size = UDim2.fromOffset(22, 22), ScaleType = Enum.ScaleType.Fit, LayoutOrder = 1, Theme = {ImageColor3 = "Accent", Visible = function() return Style.TopLogo ~= false end}, Parent = TitleRow})
+	New("ImageLabel", {Image = ASSET_LOGO, Size = UDim2.fromOffset(22, 22), ScaleType = Enum.ScaleType.Fit, LayoutOrder = 1, Theme = {Visible = function() return Style.TopLogo ~= false end}, Parent = TitleRow})
 	New("TextLabel", {Text = Config.Brand, Size = UDim2.fromOffset(0, 22), AutomaticSize = Enum.AutomaticSize.X, LayoutOrder = 2, Theme = {TextSize = function() return Style.TopSize or 20 end}, Parent = TitleRow})
 
 	local function TopButton(icon, xOff, hoverKey)
@@ -3623,13 +3587,11 @@ function Library:CreateWindow(options)
 	local Footer = New("Frame", {Size = UDim2.new(1, 0, 0, FOOT), Position = UDim2.new(0, 0, 1, -FOOT), Theme = {BackgroundColor3 = "Topbar"}, Parent = Window})
 	Corner(Footer, 4)
 	New("Frame", {Size = UDim2.new(1, 0, 0, 4), Theme = {BackgroundColor3 = "Topbar"}, Parent = Footer})
-	New("Frame", {Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 1, -(FOOT + 1)), Theme = {BackgroundColor3 = "Stroke", BackgroundTransparency = function() return Style.Dividers == false and 1 or 0 end}, Parent = Window})
 	New("TextLabel", {Text = GameName, TextSize = 13, Size = UDim2.new(1, -60, 1, 0), Position = UDim2.fromOffset(30, 0), TextTruncate = Enum.TextTruncate.AtEnd, Theme = {TextColor3 = "TextMuted"}, Parent = Footer})
 
 	------------------------------------------------------------------ sidebar
 	local BODY_H = TOP + 1 + FOOT + 1
 	local Sidebar = New("Frame", {Size = UDim2.new(0, SIDE, 1, -BODY_H), Position = UDim2.fromOffset(0, TOP + 1), Theme = {BackgroundColor3 = "Sidebar"}, Parent = Window})
-	New("Frame", {Size = UDim2.new(0, 1, 1, -BODY_H), Position = UDim2.fromOffset(SIDE, TOP + 1), Theme = {BackgroundColor3 = "Stroke", BackgroundTransparency = function() return Style.Dividers == false and 1 or 0 end}, Parent = Window})
 	local Clip = New("Frame", {Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ClipsDescendants = true, Parent = Sidebar})
 	local MainStack = New("Frame", {Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = Clip})
 	local SetStack = New("Frame", {Size = UDim2.fromScale(1, 1), Position = UDim2.fromScale(1, 0), BackgroundTransparency = 1, Parent = Clip})
@@ -3639,7 +3601,6 @@ function Library:CreateWindow(options)
 	ListLayout(TabContainer, 2)
 
 	-- profile row at the bottom of the sidebar, opens settings
-	New("Frame", {Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 1, -50), Theme = {BackgroundColor3 = "Stroke", BackgroundTransparency = function() return Style.Dividers == false and 1 or 0 end}, Parent = MainStack})
 	local Profile = New("TextButton", {Size = UDim2.new(1, -16, 0, 36), Position = UDim2.new(0, 8, 1, -43), BackgroundTransparency = 1, Theme = {BackgroundColor3 = "Container"}, Parent = MainStack})
 	Corner(Profile, SMALL_R)
 	local Avatar = New("ImageLabel", {Size = UDim2.fromOffset(24, 24), Position = UDim2.new(0, 6, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), Theme = {BackgroundColor3 = "Container"}, Parent = Profile})
@@ -3689,7 +3650,6 @@ function Library:CreateWindow(options)
 		Tween(BackArrow, {ImageColor3 = Theme.TextDark}, 0.18)
 	end)
 	ApplyTooltip(BackBtn, "Back to the menu")
-	New("Frame", {Size = UDim2.new(1, 0, 0, 1), Position = UDim2.fromOffset(0, 46), Theme = {BackgroundColor3 = "Stroke", BackgroundTransparency = function() return Style.Dividers == false and 1 or 0 end}, Parent = SetStack})
 	local SetContainer = New("ScrollingFrame", {Size = UDim2.new(1, 0, 1, -47), Position = UDim2.fromOffset(0, 47), ScrollBarThickness = 0, Parent = SetStack})
 	Padding(SetContainer, 8, Compact and 6 or 8, 8, Compact and 6 or 8)
 	ListLayout(SetContainer, 2)
@@ -3837,7 +3797,7 @@ function Library:CreateWindow(options)
 
 	
 	local MiniGui = New("ScreenGui", {Name = "PhantomMiniButton", IgnoreGuiInset = true, ResetOnSpawn = false, Enabled = not Library.UIHidden, Parent = GetParent()})
-	local MiniButton = New("ImageButton", {Visible = Library.MiniButtonEnabled, Size = UDim2.fromOffset(48, 48), Position = UDim2.new(0, 20, 0.5, -24), Image = ASSET_LOGO, ScaleType = Enum.ScaleType.Fit, BackgroundTransparency = 0.05, Active = true, Theme = {BackgroundColor3 = "Background", ImageColor3 = "Accent"}, Parent = MiniGui})
+	local MiniButton = New("ImageButton", {Visible = Library.MiniButtonEnabled, Size = UDim2.fromOffset(48, 48), Position = UDim2.new(0, 20, 0.5, -24), Image = ASSET_LOGO, ScaleType = Enum.ScaleType.Fit, BackgroundTransparency = 0.05, Active = true, Theme = {BackgroundColor3 = "Background"}, Parent = MiniGui})
 	Corner(MiniButton, 24)
 	Padding(MiniButton, 9, 9, 9, 9)
 	local MiniStroke = Stroke(MiniButton, "Accent", 0.2, 2)
@@ -4215,7 +4175,7 @@ function Library:CreateWindow(options)
 
 		------------------------------------------------ Appearance
 		local LookSec = Appearance:Section("Look")
-		LookSec:Dropdown("Style", "UIStyle", StyleOrder, Library.StyleName, "OG, Obsidian, Fluent or Modern. Changes the whole look instantly", function(name)
+		LookSec:Dropdown("Style", "UIStyle", StyleOrder, Library.StyleName, "Obsidian or Fluent. Changes the whole look instantly", function(name)
 			if type(name) == "string" and name ~= Library.StyleName then
 				Library:SetStyle(name)
 				Library:Notify("Style", name .. " style applied", 2, "Success")
