@@ -215,7 +215,7 @@ local Styles = {
 		StrokeT = 0.55, WindowT = 0.06, Dim = 0, Slider = "thin", Toggle = "switch",
 		ButtonCenter = false, CenterLabels = false, Gradient = false,
 		TabIcons = true, TabPill = false, Dividers = true, FlatChrome = false, WindowGradient = false,
-		TopAccent = false, TopLogo = true, TopSize = 16, PanelStrokeT = 0, ChromeT = 0.55, SideTitle = true,
+		TopAccent = false, TopLogo = true, TopSize = 16, PanelStrokeT = 0, ChromeT = 0.55, SideTitle = true, Footer = false,
 		Base = {},
 
 	},
@@ -3673,27 +3673,29 @@ function Library:CreateWindow(options)
 	local SearchInput = New("TextBox", {Size = UDim2.new(1, -34, 1, 0), Position = UDim2.fromOffset(28, 0), PlaceholderText = "Search", TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, ClipsDescendants = true, Parent = SearchBox})
 
 	------------------------------------------------------------------ footer
-	local Footer = New("Frame", {Size = UDim2.new(1, 0, 0, FOOT), Position = UDim2.new(0, 0, 1, -FOOT), Theme = {BackgroundColor3 = "Topbar"}, Parent = Window})
+	local function HasFooter() return Style.Footer ~= false end
+	local Footer = New("Frame", {Size = UDim2.new(1, 0, 0, FOOT), Position = UDim2.new(0, 0, 1, -FOOT), Theme = {BackgroundColor3 = "Topbar", Visible = HasFooter}, Parent = Window})
 	Corner(Footer, 4)
 	New("Frame", {Size = UDim2.new(1, 0, 0, 4), Theme = {BackgroundColor3 = "Topbar"}, Parent = Footer})
-	New("Frame", {Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 1, -(FOOT + 1)), Theme = {BackgroundColor3 = "Stroke", BackgroundTransparency = function() return Style.Dividers == false and 1 or 0 end}, Parent = Window})
+	New("Frame", {Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 1, -(FOOT + 1)), Theme = {BackgroundColor3 = "Stroke", BackgroundTransparency = function() return Style.Dividers == false and 1 or 0 end, Visible = HasFooter}, Parent = Window})
 	New("TextLabel", {Text = GameName, TextSize = 13, Size = UDim2.new(1, -60, 1, 0), Position = UDim2.fromOffset(30, 0), TextTruncate = Enum.TextTruncate.AtEnd, Theme = {TextColor3 = "TextMuted", Visible = function() return not Style.SideTitle end}, Parent = Footer})
 
 	------------------------------------------------------------------ sidebar
-	local BODY_H = TOP + 1 + FOOT + 1
-	local Sidebar = New("Frame", {Size = UDim2.new(0, SIDE, 1, -BODY_H), Position = UDim2.fromOffset(0, TOP + 1), Theme = {BackgroundColor3 = "Sidebar"}, Parent = Window})
-	New("Frame", {Size = UDim2.new(0, 1, 1, -BODY_H), Position = UDim2.fromOffset(SIDE, TOP + 1), Theme = {BackgroundColor3 = "Stroke", BackgroundTransparency = function() return Style.Dividers == false and 1 or 0 end}, Parent = Window})
+	local function BodyH() return TOP + 1 + (HasFooter() and (FOOT + 1) or 0) end
+	local Sidebar = New("Frame", {Position = UDim2.fromOffset(0, TOP + 1), Theme = {BackgroundColor3 = "Sidebar", Size = function() return UDim2.new(0, SIDE, 1, -BodyH()) end}, Parent = Window})
+	New("Frame", {Position = UDim2.fromOffset(SIDE, TOP + 1), Theme = {Size = function() return UDim2.new(0, 1, 1, -BodyH()) end, BackgroundColor3 = "Stroke", BackgroundTransparency = function() return Style.Dividers == false and 1 or 0 end}, Parent = Window})
 	local Clip = New("Frame", {Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ClipsDescendants = true, Parent = Sidebar})
 	local MainStack = New("Frame", {Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = Clip})
 	local SetStack = New("Frame", {Size = UDim2.fromScale(1, 1), Position = UDim2.fromScale(1, 0), BackgroundTransparency = 1, Parent = Clip})
 
 	local TabContainer = New("ScrollingFrame", {ScrollBarThickness = 0, Theme = {
-		Position = function() return Style.SideTitle and UDim2.fromOffset(0, 44) or UDim2.new() end,
-		Size = function() return Style.SideTitle and UDim2.new(1, 0, 1, -94) or UDim2.new(1, 0, 1, -50) end,
+		Position = function() return Style.SideTitle and UDim2.fromOffset(0, 46) or UDim2.new() end,
+		Size = function() return Style.SideTitle and UDim2.new(1, 0, 1, -96) or UDim2.new(1, 0, 1, -50) end,
 	}, Parent = MainStack})
 	-- like the old library: game name on top of the tab list, cut off with "..." when too long
 	local SideTitle = New("TextLabel", {Text = GameName, Font = Config.FontBold, TextSize = 18, Size = UDim2.new(1, -28, 0, 24), Position = UDim2.fromOffset(14, 12), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Theme = {TextColor3 = "Accent", Visible = function() return Style.SideTitle == true end}, Parent = MainStack})
 	ApplyTooltip(SideTitle, GameName)
+	New("Frame", {Size = UDim2.new(1, -24, 0, 1), Position = UDim2.fromOffset(12, 43), Theme = {BackgroundColor3 = "Stroke", Visible = function() return Style.SideTitle == true end}, Parent = MainStack})
 	Padding(TabContainer, 8, Compact and 6 or 8, 8, Compact and 6 or 8)
 	ListLayout(TabContainer, 2)
 
@@ -3768,7 +3770,7 @@ function Library:CreateWindow(options)
 			end
 		end
 	end
-	local MainPages = New("Frame", {Size = UDim2.new(1, -(SIDE + 1), 1, -BODY_H), Position = UDim2.fromOffset(SIDE + 1, TOP + 1), BackgroundTransparency = 1, ClipsDescendants = true, Parent = Window})
+	local MainPages = New("Frame", {Theme = {Size = function() return UDim2.new(1, -(SIDE + 1), 1, -BodyH()) end}, Position = UDim2.fromOffset(SIDE + 1, TOP + 1), BackgroundTransparency = 1, ClipsDescendants = true, Parent = Window})
 
 	local Resizer = New("Frame", {Size = UDim2.fromOffset(18, 18), Position = UDim2.fromScale(1, 1), AnchorPoint = Vector2.new(1, 1), BackgroundTransparency = 1, Active = true, ZIndex = 20, Parent = Window})
 	local grip1 = DecorLine(Resizer, 5, 14, 14, 5, "TextMuted", 0, 1)
