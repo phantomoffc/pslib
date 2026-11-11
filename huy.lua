@@ -545,11 +545,6 @@ function Library:SetUIHidden(state)
 			end
 		end
 	end)
-	pcall(function()
-		if Library._Blur then
-			Library._Blur.Enabled = (not state) and Library.Open and Library.BlurEnabled and true or false
-		end
-	end)
 end
 
 function Library:SetTheme(name, silent)
@@ -3853,31 +3848,16 @@ function Library:CreateWindow(options)
 
 	
 	local openToken = 0
-	-- one blur that lives on the camera (games often wipe Lighting), and only one tween
-	-- at a time so spamming open / close can't leave it stuck on or off
-	local blurTween
-	local function SetBlur(on)
+	-- background blur was removed; this only cleans up a blur left by an older version
+	local function SetBlur()
 		pcall(function()
-			local b = Library._Blur
-			if not (b and b.Parent) then
-				b = Instance.new("BlurEffect")
-				b.Name = "PhantomBlur"
-				b.Size = 0
-				b.Parent = workspace.CurrentCamera
-				Library._Blur = b
-			end
-			if blurTween then blurTween:Cancel() end
-			b.Enabled = true
-			local mine = TweenService:Create(b, TweenInfo.new(on and 0.35 or 0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = on and 14 or 0})
-			blurTween = mine
-			mine:Play()
-			if not on then
-				mine.Completed:Connect(function(state)
-					if state == Enum.PlaybackState.Completed and blurTween == mine then b.Enabled = false end
-				end)
+			for _, where in ipairs({Lighting, workspace.CurrentCamera}) do
+				local blur = where and where:FindFirstChild("PhantomBlur")
+				if blur then blur:Destroy() end
 			end
 		end)
 	end
+	SetBlur()
 
 	local function ShowWindow(state)
 		openToken += 1
@@ -3902,7 +3882,7 @@ function Library:CreateWindow(options)
 				if openToken == my then Holder.Visible = false end
 			end)
 		end
-		SetBlur(state and Library.BlurEnabled)
+
 	end
 	Library._ShowWindow = ShowWindow
 
@@ -4344,11 +4324,6 @@ function Library:CreateWindow(options)
 		StyleSec:Slider("Interface scale", "InterfaceScale", 60, 140, math.round(Library.UserScale * 100), 5, "Size of the whole menu in percent", function(v)
 			Library.UserScale = v / 100
 			if Library.Open then Tween(MainScale, {Scale = EffectiveScale()}, 0.3) end
-			MarkInterface()
-		end)
-		StyleSec:Toggle("Background blur", "BlurToggle", Library.BlurEnabled, "Blur the game behind the open menu", function(state)
-			Library.BlurEnabled = state
-			SetBlur(state and Library.Open)
 			MarkInterface()
 		end)
 		StyleSec:Toggle("Seasonal decorations", "DecorToggle", Library.DecorEnabled, "Cobwebs on Halloween, snow on Christmas", function(state)
