@@ -1450,10 +1450,20 @@ function Library:Notify(title, text, duration, kind)
 	local Gui = GetParent():FindFirstChild("PhantomNotifications")
 	if not Gui then
 		Gui = New("ScreenGui", {Name = "PhantomNotifications", IgnoreGuiInset = true, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, DisplayOrder = 50, ResetOnSpawn = false, Enabled = not Library.UIHidden, Parent = GetParent()})
-		local Holder = New("Frame", {Name = "Container", Size = UDim2.new(0, 290, 1, -32), Position = UDim2.new(1, -16, 0, 16), AnchorPoint = Vector2.new(1, 0), BackgroundTransparency = 1, Parent = Gui})
+		-- phones: shrink the whole stack like the menu; the frame is made taller by 1/scale so it
+		-- still reaches the bottom of the screen after scaling
+		local sc = 1
+		if IsTouchOnly() then
+			local vp = workspace.CurrentCamera.ViewportSize
+			sc = math.clamp(math.min(vp.Y / 620, vp.X / 900), 0.55, 1)
+		end
+		local Holder = New("Frame", {Name = "Container", Size = UDim2.new(0, 290, 1 / sc, -32 / sc), Position = UDim2.new(1, -16, 0, 16), AnchorPoint = Vector2.new(1, 0), BackgroundTransparency = 1, Parent = Gui})
+		New("UIScale", {Scale = sc, Parent = Holder})
 		ListLayout(Holder, 8, false, Enum.HorizontalAlignment.Right, Enum.VerticalAlignment.Bottom)
 	end
 	local Holder = Gui:FindFirstChild("Container")
+	local holderScale = Holder:FindFirstChildOfClass("UIScale")
+	local nScale = holderScale and holderScale.Scale or 1
 	-- place the stack in the corner picked in Settings > General
 	local side = Library.NotifySide or "Bottom right"
 	local onRight = side:find("right") ~= nil
@@ -1494,7 +1504,7 @@ function Library:Notify(title, text, duration, kind)
 	task.defer(function()
 		RunService.Heartbeat:Wait()
 		if not Card.Parent then return end
-		Tween(Slot, {Size = UDim2.new(1, 0, 0, Card.AbsoluteSize.Y)}, 0.3)
+		Tween(Slot, {Size = UDim2.new(1, 0, 0, Card.AbsoluteSize.Y / nScale)}, 0.3)
 		Tween(Card, {Position = UDim2.new(0, 0, 0, 0)}, 0.5)
 		task.delay(duration, Close)
 	end)
