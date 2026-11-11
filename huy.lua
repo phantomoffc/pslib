@@ -1153,6 +1153,15 @@ function Library:Unload()
 	Library.Unloaded = true
 	for _, conn in ipairs(Library.Connections) do pcall(function() conn:Disconnect() end) end
 	Library.Connections = {}
+	-- switch every toggle off so the script's loops and hooks stop together with the hub
+	local notify = Library.Notify
+	Library.Notify = function() end
+	for flag, value in pairs(Library.Flags) do
+		if value == true and Library.Signals[flag] then
+			pcall(Library.Signals[flag], false)
+		end
+	end
+	Library.Notify = notify
 	if Drag_Driver then
 		for _, c in ipairs(Drag_Driver) do pcall(function() c:Disconnect() end) end
 		Drag_Driver = nil
@@ -3663,6 +3672,14 @@ function Library:CreateWindow(options)
 	if options.Game then Library.HubConfig.Game = options.Game end
 	EnsureFolder(Config.ConfigFolder)
 
+	-- running a script again loads a new copy of the library; shut the old copy down first,
+	-- otherwise its features keep running with switches that are no longer on screen
+	local env = (type(getgenv) == "function" and getgenv()) or _G
+	local previous = rawget(env, "PhantomLibrary")
+	if previous ~= nil and previous ~= Library and type(previous.Unload) == "function" then
+		pcall(previous.Unload, previous)
+	end
+	env.PhantomLibrary = Library
 	Library:Unload()
 	LoadInterface()
 	BuildTooltip()
