@@ -132,10 +132,19 @@ end
 --   Slider     "bar" = value written inside a 15px bar, "thin" = 4px rail + round thumb
 --   WindowT    window transparency (Fluent's see-through acrylic look)
 ----------------------------------------------------------------------------------------------------
+-- extra tokens:
+--   Toggle "switch" | "check"     TabIcons / TabBar   sidebar icons / accent bar on the active tab
+--   ButtonCenter   centered text  CenterLabels        labels above controls are centered
+--   TitleSize / TitleDim / GroupLine   groupbox title look     Gradient   soft shade on controls
+--   TopAccent  accent line under the top bar     TopLogo / TopSize   top bar logo / title size
 local Styles = {
+	-- your original library: red Phantom colors, Gotham, boxed elements, checkbox toggles
 	["OG"] = {
 		Font = "Gotham", Rounding = "Round", Cards = true, CardPad = 8, CardT = 0, CardStrokeT = 0.5,
-		GroupPanel = true, StrokeT = 0.5, WindowT = 0, Dim = 0, Slider = "bar",
+		GroupPanel = true, GroupLine = false, TitleSize = 13, TitleDim = true,
+		StrokeT = 0.5, WindowT = 0.1, Dim = 0, Slider = "og", Toggle = "check",
+		ButtonCenter = true, CenterLabels = false, Gradient = false,
+		TabIcons = true, TabBar = true, TopAccent = true, TopLogo = true, TopSize = 15,
 		Base = {
 			Background = "#080505", Sidebar = "#0c0707", Topbar = "#120a0a", Section = "#1a0e0e",
 			Container = "#140b0b", Card = "#140b0b", Stroke = "#2e1717",
@@ -144,25 +153,35 @@ local Styles = {
 	},
 	["Obsidian"] = {
 		Font = "Code", Rounding = "Default", Cards = false, CardPad = 0, CardT = 1, CardStrokeT = 1,
-		GroupPanel = true, StrokeT = 0, WindowT = 0, Dim = 0.4, Slider = "bar",
+		GroupPanel = true, GroupLine = true, TitleSize = 15, TitleDim = false,
+		StrokeT = 0, WindowT = 0, Dim = 0.4, Slider = "bar", Toggle = "switch",
+		ButtonCenter = true, CenterLabels = false, Gradient = false,
+		TabIcons = true, TabBar = false, TopAccent = false, TopLogo = true, TopSize = 20,
 		Base = {},
 	},
 	["Fluent"] = {
 		Font = "Gotham", Rounding = "Default", Cards = true, CardPad = 11, CardT = 0.87, CardStrokeT = 0.35,
-		GroupPanel = false, StrokeT = 0.55, WindowT = 0.06, Dim = 0, Slider = "thin",
+		GroupPanel = false, GroupLine = false, TitleSize = 17, TitleDim = false,
+		StrokeT = 0.55, WindowT = 0.06, Dim = 0, Slider = "thin", Toggle = "switch",
+		ButtonCenter = false, CenterLabels = false, Gradient = false,
+		TabIcons = true, TabBar = true, TopAccent = false, TopLogo = true, TopSize = 16,
 		Base = {
 			Background = "#202020", Sidebar = "#1c1c1c", Topbar = "#1c1c1c", Section = "#202020",
 			Container = "#2d2d2d", Card = "#787878", Stroke = "#3c3c3c",
 			Text = "#f0f0f0", TextDark = "#aaaaaa", TextMuted = "#787878",
 		},
 	},
+	-- clean premium look: text-only sidebar with accent bar, bold titles, centered labels, shaded controls
 	["Modern"] = {
-		Font = "Builder Sans", Rounding = "Soft", Cards = true, CardPad = 12, CardT = 0, CardStrokeT = 0,
-		GroupPanel = false, StrokeT = 1, WindowT = 0, Dim = 0.3, Slider = "thin",
+		Font = "Builder Sans Bold", Rounding = "Medium", Cards = false, CardPad = 0, CardT = 1, CardStrokeT = 1,
+		GroupPanel = true, GroupLine = true, TitleSize = 14, TitleDim = false,
+		StrokeT = 0.35, WindowT = 0, Dim = 0.25, Slider = "modern", Toggle = "switch",
+		ButtonCenter = true, CenterLabels = true, Gradient = true,
+		TabIcons = false, TabBar = true, TopAccent = false, TopLogo = false, TopSize = 15,
 		Base = {
-			Background = "#09090b", Sidebar = "#0c0c0f", Topbar = "#09090b", Section = "#09090b",
-			Container = "#232328", Card = "#131316", Stroke = "#27272a",
-			Text = "#fafafa", TextDark = "#a1a1aa", TextMuted = "#63636b",
+			Background = "#141416", Sidebar = "#141416", Topbar = "#141416", Section = "#1b1b1f",
+			Container = "#29292e", Card = "#1b1b1f", Stroke = "#2c2c31",
+			Text = "#f2f2f4", TextDark = "#8e8e96", TextMuted = "#5c5c64",
 		},
 	},
 }
@@ -172,6 +191,9 @@ for _, st in pairs(Styles) do
 end
 Library.StyleName = "Obsidian"
 local Style = Styles[Library.StyleName]
+local function LabelAlign()
+	return Style.CenterLabels and Enum.TextXAlignment.Center or Enum.TextXAlignment.Left
+end
 Library.Styles = Styles
 
 -- user color overrides (Settings > Appearance > Colors); they stay when switching themes
@@ -347,7 +369,7 @@ end
 -- corner style ("Sharp" / "Default" / "Round") scales the 2px and 4px style corners;
 -- circles and tiny dots keep their radius
 local Corners = {}
-local RoundingScale = {Sharp = 0, Default = 1, Round = 2.5, Soft = 3}
+local RoundingScale = {Sharp = 0, Default = 1, Medium = 1.75, Round = 2.5, Soft = 3}
 local function ScaledRadius(base)
 	return math.floor(base * (RoundingScale[Library.Rounding] or 1) + 0.5)
 end
@@ -375,12 +397,13 @@ end
 local FontChoices = {
 	Code = Enum.Font.Code,
 	Gotham = Enum.Font.GothamMedium,
-	["Builder Sans"] = Enum.Font.BuilderSansMedium,
+	["Builder Sans"] = PickFont("BuilderSansMedium", Enum.Font.GothamMedium),
+	["Builder Sans Bold"] = PickFont("BuilderSansBold", Enum.Font.GothamBold),
 	Ubuntu = Enum.Font.Ubuntu,
 	["Source Sans"] = Enum.Font.SourceSans,
 	Arial = Enum.Font.Arial,
 }
-local FontOrder = {"Code", "Gotham", "Builder Sans", "Ubuntu", "Source Sans", "Arial"}
+local FontOrder = {"Code", "Gotham", "Builder Sans", "Builder Sans Bold", "Ubuntu", "Source Sans", "Arial"}
 Library.FontName = "Code"
 
 local function Stroke(parent, key, transparency, thickness)
@@ -1798,6 +1821,7 @@ local function FlatButton(parent, text, order, height)
 	Corner(b, SMALL_R)
 	local st = Stroke(b, "Stroke", 0)
 	Interactive(b, st)
+	New("UIGradient", {Rotation = 90, Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(205, 205, 210)), Theme = {Enabled = function() return Style.Gradient end}, Parent = b})
 	return b, st
 end
 
@@ -1947,9 +1971,10 @@ local function CreateDropdownElement(text, flag, options, default, tooltipText, 
 
 	local Holder = New("Frame", {Size = UDim2.new(1, 0, 0, HEAD), BackgroundTransparency = 1, LayoutOrder = layoutOrder or 0, Parent = customParent or parentFrame})
 	if hasLabel then
-		New("TextLabel", {Text = text, Size = UDim2.new(1, 0, 0, 14), TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Parent = Holder})
+		New("TextLabel", {Text = text, Size = UDim2.new(1, 0, 0, 14), TextSize = 14, TextTruncate = Enum.TextTruncate.AtEnd, Theme = {TextXAlignment = LabelAlign}, Parent = Holder})
 	end
 	local Box = New("TextButton", {Size = UDim2.new(1, 0, 0, CTRL_H), Position = UDim2.fromOffset(0, TOPH), Theme = {BackgroundColor3 = "Container"}, Parent = Holder})
+	New("UIGradient", {Rotation = 90, Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(205, 205, 210)), Theme = {Enabled = function() return Style.Gradient end}, Parent = Box})
 	Corner(Box, SMALL_R)
 	local BoxStroke = Stroke(Box, "Stroke", 0)
 	local Value = New("TextLabel", {Size = UDim2.new(1, -30, 1, 0), Position = UDim2.fromOffset(8, 0), TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Parent = Box})
@@ -2126,6 +2151,11 @@ end
 -- right click the bar to type an exact value
 ----------------------------------------------------------------------------------------------------
 
+-- Slider shapes (Style.Slider):
+--   "bar"    Obsidian: label on top, 15px bar with "value/max" written inside, right click to type
+--   "thin"   Fluent:   label left, value + 4px rail + round thumb on the right
+--   "og"     OG:       label left, value top right, 6px bar underneath
+--   "modern" Modern:   centered label, thick rounded track with a pill knob, value box on the right
 local function CreateSliderElement(text, flag, min, max, default, increment, tooltipText, callback, parentFrame, addItem, layoutOrder, compact)
 	increment = increment or 1
 	callback = WrapCallback(text, callback, false)
@@ -2135,49 +2165,85 @@ local function CreateSliderElement(text, flag, min, max, default, increment, too
 	Library.Defaults[flag] = val
 	Library.Flags[flag] = val
 	local range = max - min
-	local function IsThin() return Style.Slider == "thin" end
+	local function Shape() return Style.Slider or "bar" end
+	local function Is(name) return function() return Shape() == name end end
+	local function Ratio() return range > 0 and (val - min) / range or 0 end
+	local heights = {bar = compact and 15 or 33, thin = 18, og = 30, modern = 38}
 
 	local Frame = New("Frame", {BackgroundTransparency = 1, LayoutOrder = layoutOrder or 0, Theme = {
-		Size = function() return UDim2.new(1, 0, 0, IsThin() and 18 or (compact and 15 or 33)) end,
+		Size = function() return UDim2.new(1, 0, 0, heights[Shape()] or 33) end,
 	}, Parent = parentFrame})
 	if addItem then addItem(text, Frame) end
 	if not compact then
-		New("TextLabel", {Text = text, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Theme = {
-			Size = function() return IsThin() and UDim2.new(0.45, 0, 1, 0) or UDim2.new(1, 0, 0, 14) end,
+		New("TextLabel", {Text = text, TextSize = 14, TextTruncate = Enum.TextTruncate.AtEnd, Theme = {
+			Size = function()
+				local sh = Shape()
+				if sh == "thin" then return UDim2.new(0.45, 0, 1, 0) end
+				if sh == "og" then return UDim2.new(1, -60, 0, 16) end
+				return UDim2.new(1, 0, 0, sh == "modern" and 16 or 14)
+			end,
+			TextXAlignment = function() return Shape() == "modern" and Enum.TextXAlignment.Center or Enum.TextXAlignment.Left end,
 		}, Parent = Frame})
 	end
 
-	-- "bar" shape: value written inside a 15px bar, right click to type
-	local Bar = New("TextButton", {Size = UDim2.new(1, 0, 0, 15), Position = UDim2.new(0, 0, 1, -15), Theme = {BackgroundColor3 = "Container", Visible = function() return not IsThin() end}, Parent = Frame})
+	-- bar
+	local Bar = New("TextButton", {Size = UDim2.new(1, 0, 0, 15), Position = UDim2.new(0, 0, 1, -15), Theme = {BackgroundColor3 = "Container", Visible = Is("bar")}, Parent = Frame})
 	Corner(Bar, SMALL_R)
 	local St = Stroke(Bar, "Stroke", 0)
-	local Fill = New("Frame", {Size = UDim2.new(range > 0 and (val - min) / range or 0, 0, 1, 0), Theme = {BackgroundColor3 = "Accent"}, Parent = Bar})
+	local Fill = New("Frame", {Size = UDim2.new(Ratio(), 0, 1, 0), Theme = {BackgroundColor3 = "Accent"}, Parent = Bar})
 	Corner(Fill, SMALL_R)
 	local Display = New("TextLabel", {Size = UDim2.fromScale(1, 1), TextSize = 14, ZIndex = 2, Theme = {TextColor3 = "Text"}, Parent = Bar})
 	New("UIStroke", {ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual, Color = Color3.new(0, 0, 0), Transparency = 0.4, Parent = Display})
 	local Input = New("TextBox", {Size = UDim2.fromScale(1, 1), TextSize = 14, ZIndex = 3, Visible = false, BackgroundTransparency = 0, Theme = {BackgroundColor3 = "Container"}, Parent = Bar})
 	Corner(Input, SMALL_R)
 
-	-- "thin" shape: value box + 4px rail + round thumb on the right half
-	local ThinWrap = New("Frame", {BackgroundTransparency = 1, AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromScale(1, 0), Size = compact and UDim2.fromScale(1, 1) or UDim2.new(0.55, 0, 1, 0), Theme = {Visible = IsThin}, Parent = Frame})
-	local ValueBox = New("TextBox", {Size = UDim2.new(0, 46, 1, 0), TextSize = 13, TextXAlignment = Enum.TextXAlignment.Right, Theme = {TextColor3 = "TextDark"}, Parent = ThinWrap})
+	-- thin
+	local ThinWrap = New("Frame", {BackgroundTransparency = 1, AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromScale(1, 0), Size = compact and UDim2.fromScale(1, 1) or UDim2.new(0.55, 0, 1, 0), Theme = {Visible = Is("thin")}, Parent = Frame})
+	local ThinValue = New("TextBox", {Size = UDim2.new(0, 46, 1, 0), TextSize = 13, TextXAlignment = Enum.TextXAlignment.Right, Theme = {TextColor3 = "TextDark"}, Parent = ThinWrap})
 	local Rail = New("Frame", {Size = UDim2.new(1, -62, 0, 4), Position = UDim2.new(0, 56, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), Theme = {BackgroundColor3 = "Container"}, Parent = ThinWrap})
 	New("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Rail})
-	local RailFill = New("Frame", {Size = UDim2.new(range > 0 and (val - min) / range or 0, 0, 1, 0), Theme = {BackgroundColor3 = "Accent"}, Parent = Rail})
+	local RailFill = New("Frame", {Size = UDim2.new(Ratio(), 0, 1, 0), Theme = {BackgroundColor3 = "Accent"}, Parent = Rail})
 	New("UICorner", {CornerRadius = UDim.new(1, 0), Parent = RailFill})
-	local Thumb = New("Frame", {Size = UDim2.fromOffset(12, 12), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(range > 0 and (val - min) / range or 0, 0, 0.5, 0), ZIndex = 2, Theme = {BackgroundColor3 = "Accent"}, Parent = Rail})
+	local Thumb = New("Frame", {Size = UDim2.fromOffset(12, 12), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(Ratio(), 0, 0.5, 0), ZIndex = 2, Theme = {BackgroundColor3 = "Accent"}, Parent = Rail})
 	New("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Thumb})
 	New("UIStroke", {Thickness = 2, Theme = {Color = "Card"}, Parent = Thumb})
 	local RailHit = New("TextButton", {Size = UDim2.new(1, -56, 1, 0), Position = UDim2.fromOffset(56, 0), Parent = ThinWrap})
 
+	-- og
+	local OgValue = New("TextBox", {Size = UDim2.new(0, 56, 0, 16), Position = UDim2.fromScale(1, 0), AnchorPoint = Vector2.new(1, 0), TextSize = 14, TextXAlignment = Enum.TextXAlignment.Right, Theme = {Visible = Is("og")}, Parent = Frame})
+	local OgBar = New("Frame", {Size = UDim2.new(1, 0, 0, 6), Position = UDim2.new(0, 0, 1, -6), Theme = {BackgroundColor3 = "Container", Visible = Is("og")}, Parent = Frame})
+	New("UICorner", {CornerRadius = UDim.new(0, 3), Parent = OgBar})
+	Stroke(OgBar, "Stroke", 0.5)
+	local OgFill = New("Frame", {Size = UDim2.new(Ratio(), 0, 1, 0), Theme = {BackgroundColor3 = "Accent"}, Parent = OgBar})
+	New("UICorner", {CornerRadius = UDim.new(0, 3), Parent = OgFill})
+	local OgHit = New("TextButton", {Size = UDim2.new(1, 0, 0, 14), Position = UDim2.new(0, 0, 1, -10), Theme = {Visible = Is("og")}, Parent = Frame})
+
+	-- modern
+	local MWrap = New("Frame", {Size = UDim2.new(1, 0, 0, 18), Position = UDim2.new(0, 0, 1, -18), BackgroundTransparency = 1, Theme = {Visible = Is("modern")}, Parent = Frame})
+	local MTrack = New("Frame", {Size = UDim2.new(1, -60, 0, 12), Position = UDim2.new(0, 0, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), Theme = {BackgroundColor3 = "Container"}, Parent = MWrap})
+	New("UICorner", {CornerRadius = UDim.new(0, 4), Parent = MTrack})
+	local MFill = New("Frame", {Size = UDim2.new(Ratio(), 0, 1, 0), BackgroundColor3 = Color3.new(1, 1, 1), Parent = MTrack})
+	New("UICorner", {CornerRadius = UDim.new(0, 4), Parent = MFill})
+	New("UIGradient", {Rotation = 90, Theme = {Color = function() return ColorSequence.new(Theme.Accent:Lerp(Color3.new(1, 1, 1), 0.18), Theme.Accent) end}, Parent = MFill})
+	local MKnob = New("Frame", {Size = UDim2.fromOffset(7, 16), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(Ratio(), 0, 0.5, 0), ZIndex = 2, BackgroundColor3 = Color3.fromRGB(235, 235, 235), Parent = MTrack})
+	New("UICorner", {CornerRadius = UDim.new(0, 3), Parent = MKnob})
+	local MValue = New("TextBox", {Size = UDim2.new(0, 52, 1, 0), Position = UDim2.fromScale(1, 0), AnchorPoint = Vector2.new(1, 0), TextSize = 13, Theme = {BackgroundColor3 = "Container"}, Parent = MWrap})
+	Corner(MValue, SMALL_R)
+	local MHit = New("TextButton", {Size = UDim2.new(1, -60, 1, 0), Parent = MWrap})
+
+	local tracks = {bar = Bar, thin = Rail, og = OgBar, modern = MTrack}
+	local valueBoxes = {ThinValue, OgValue, MValue}
+
 	local function Render(t)
-		local r = range > 0 and (val - min) / range or 0
-		Tween(Fill, {Size = UDim2.new(r, 0, 1, 0)}, t)
-		Tween(RailFill, {Size = UDim2.new(r, 0, 1, 0)}, t)
+		local r = Ratio()
+		for _, f in ipairs({Fill, RailFill, OgFill, MFill}) do Tween(f, {Size = UDim2.new(r, 0, 1, 0)}, t) end
 		Tween(Thumb, {Position = UDim2.new(r, 0, 0.5, 0)}, t)
+		Tween(MKnob, {Position = UDim2.new(r, 0, 0.5, 0)}, t)
 		local shown = FormatNumber(val, increment) .. "/" .. FormatNumber(max, increment)
 		Display.Text = compact and (text .. ": " .. shown) or shown
-		if not ValueBox:IsFocused() then ValueBox.Text = FormatNumber(val, increment) end
+		for _, box in ipairs(valueBoxes) do
+			if not box:IsFocused() then box.Text = FormatNumber(val, increment) end
+		end
 	end
 	Render(0)
 	local function Commit(nv)
@@ -2189,7 +2255,7 @@ local function CreateSliderElement(text, flag, min, max, default, increment, too
 		callback(val)
 	end
 	local function SetFromInput(input)
-		local track = IsThin() and Rail or Bar
+		local track = tracks[Shape()] or Bar
 		local r = math.clamp((input.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
 		Commit(min + range * r)
 		Render(0.08)
@@ -2203,28 +2269,27 @@ local function CreateSliderElement(text, flag, min, max, default, increment, too
 
 	Track(Bar.MouseEnter, function() Tween(St, {Color = Theme.StrokeHover}, 0.15) end)
 	Track(Bar.MouseLeave, function() Tween(St, {Color = Theme.Stroke}, 0.2) end)
-	Track(Bar.InputBegan, StartDrag)
-	Track(RailHit.InputBegan, StartDrag)
+	for _, hit in ipairs({Bar, RailHit, OgHit, MHit}) do Track(hit.InputBegan, StartDrag) end
 	Track(Bar.MouseButton2Click, function()
 		Input.Text = FormatNumber(val, increment)
 		Input.Visible = true
 		Input:CaptureFocus()
 	end)
-	local function TypedValue(box, enter)
+	local function Typed(box, enter)
 		if enter then
 			local num = tonumber((string.gsub(box.Text, "[^%d%.%-]", "")))
 			if num then Commit(num) end
 		end
+		box.Text = FormatNumber(val, increment)
 		Render(0.2)
 	end
 	Track(Input.FocusLost, function(enter)
 		Input.Visible = false
-		TypedValue(Input, enter)
+		Typed(Input, enter)
 	end)
-	Track(ValueBox.FocusLost, function(enter)
-		TypedValue(ValueBox, enter)
-		ValueBox.Text = FormatNumber(val, increment)
-	end)
+	for _, box in ipairs(valueBoxes) do
+		Track(box.FocusLost, function(enter) Typed(box, enter) end)
+	end
 
 	Library.Signals[flag] = function(loaded)
 		if type(loaded) ~= "number" then return end
@@ -2252,8 +2317,12 @@ local function CreateSectionFrame(text, parent, order)
 	New("UIStroke", {ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Theme = {Color = "Stroke", Transparency = panel(0, 1)}, Parent = Container})
 	ListLayout(Container, 0)
 	local Header = New("Frame", {BackgroundTransparency = 1, LayoutOrder = 0, Theme = {Size = panel(UDim2.new(1, 0, 0, 32), UDim2.new(1, 0, 0, 26))}, Parent = Container})
-	local Title = New("TextLabel", {Text = tostring(text), Size = UDim2.new(1, -20, 1, 0), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Theme = {TextSize = panel(15, 17), Position = panel(UDim2.fromOffset(10, 0), UDim2.fromOffset(2, 0))}, Parent = Header})
-	New("Frame", {Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 1, -1), Theme = {BackgroundColor3 = "Stroke", BackgroundTransparency = panel(0, 1)}, Parent = Header})
+	local Title = New("TextLabel", {Text = tostring(text), Size = UDim2.new(1, -20, 1, 0), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Theme = {
+		TextSize = function() return Style.TitleSize or 15 end,
+		TextColor3 = function() return Style.TitleDim and Theme.TextDark or Theme.Text end,
+		Position = panel(UDim2.fromOffset(10, 0), UDim2.fromOffset(2, 0)),
+	}, Parent = Header})
+	New("Frame", {Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 1, -1), Theme = {BackgroundColor3 = "Stroke", BackgroundTransparency = function() return (Style.GroupPanel and Style.GroupLine) and 0 or 1 end}, Parent = Header})
 	local Content = New("Frame", {Name = "Content", Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = 1, Parent = Container})
 	New("UIPadding", {Theme = {
 		PaddingTop = panel(UDim.new(0, 8), UDim.new(0, 2)),
@@ -2351,7 +2420,7 @@ local function AttachElements(Section, Content, ctx)
 		-- on a card the card itself is the button look
 		ThemeBind(Btn, {
 			BackgroundTransparency = function() return Style.Cards and 1 or 0 end,
-			TextXAlignment = function() return Style.Cards and Enum.TextXAlignment.Left or Enum.TextXAlignment.Center end,
+			TextXAlignment = function() return Style.ButtonCenter and Enum.TextXAlignment.Center or Enum.TextXAlignment.Left end,
 		})
 		ThemeBind(Btn:FindFirstChildOfClass("UIStroke"), {Transparency = function() return Style.Cards and 1 or Style.StrokeT end})
 		Track(Btn.MouseButton1Click, WrapCallback(text, callback, false))
@@ -2383,7 +2452,10 @@ local function AttachElements(Section, Content, ctx)
 		AddItem(text, Btn)
 		local Label = New("TextLabel", {Text = text, Size = UDim2.new(1, -42, 1, 0), TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Parent = Btn})
 		ThemeBind(Label, {TextTransparency = function() return toggled and 0 or Style.Dim end})
-		local Switch = New("Frame", {Size = UDim2.fromOffset(32, 18), Position = UDim2.fromScale(1, 0), AnchorPoint = Vector2.new(1, 0), Theme = {BackgroundColor3 = function() return toggled and Theme.Accent or Theme.Container end}, Parent = Btn})
+		local Switch = New("Frame", {Size = UDim2.fromOffset(32, 18), Position = UDim2.fromScale(1, 0), AnchorPoint = Vector2.new(1, 0), Theme = {
+			BackgroundColor3 = function() return toggled and Theme.Accent or Theme.Container end,
+			Visible = function() return Style.Toggle ~= "check" end,
+		}, Parent = Btn})
 		New("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Switch})
 		Padding(Switch, 2, 2, 2, 2)
 		local SStroke = Stroke(Switch, function() return toggled and Theme.Accent or Theme.Stroke end, 0)
@@ -2394,6 +2466,12 @@ local function AttachElements(Section, Content, ctx)
 			Parent = Switch,
 		})
 		New("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Ball})
+		-- OG checkbox
+		local Check = New("Frame", {Size = UDim2.fromOffset(18, 18), Position = UDim2.fromScale(1, 0), AnchorPoint = Vector2.new(1, 0), Theme = {BackgroundColor3 = "Background", Visible = function() return Style.Toggle == "check" end}, Parent = Btn})
+		Corner(Check, 4)
+		Stroke(Check, "Stroke", 0)
+		local CheckFill = New("Frame", {Size = UDim2.new(1, -6, 1, -6), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = toggled and 0 or 1, Theme = {BackgroundColor3 = "Accent"}, Parent = Check})
+		Corner(CheckFill, 2)
 
 		Track(Btn.MouseEnter, function()
 			if not toggled then Tween(Label, {TextTransparency = math.min(0.15, Style.Dim)}, 0.12) end
@@ -2425,6 +2503,7 @@ local function AttachElements(Section, Content, ctx)
 			Tween(Switch, {BackgroundColor3 = toggled and Theme.Accent or Theme.Container}, 0.2)
 			Tween(SStroke, {Color = toggled and Theme.Accent or Theme.Stroke}, 0.2)
 			Tween(Label, {TextTransparency = toggled and 0 or Style.Dim}, 0.2)
+			Tween(CheckFill, {BackgroundTransparency = toggled and 0 or 1}, 0.15)
 			Tween(Ball, {
 				AnchorPoint = Vector2.new(toggled and 1 or 0, 0),
 				Position = UDim2.fromScale(toggled and 1 or 0, 0),
@@ -2643,7 +2722,10 @@ local function AttachElements(Section, Content, ctx)
 	local function KeyRow(text)
 		local Frame = New("Frame", {Size = UDim2.new(1, 0, 0, 18), BackgroundTransparency = 1, Parent = Cell()})
 		AddItem(text, Frame)
-		New("TextLabel", {Text = text, Size = UDim2.new(1, -90, 1, 0), TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Parent = Frame})
+		New("TextLabel", {Text = text, TextSize = 14, TextTruncate = Enum.TextTruncate.AtEnd, Theme = {
+			TextXAlignment = LabelAlign,
+			Size = function() return Style.CenterLabels and UDim2.new(1, 0, 1, 0) or UDim2.new(1, -90, 1, 0) end,
+		}, Parent = Frame})
 		local Chip, ChipStroke = KeyChip(Frame, {Size = UDim2.fromOffset(0, 18), Position = UDim2.fromScale(1, 0), AnchorPoint = Vector2.new(1, 0)})
 		return Frame, Chip, ChipStroke
 	end
@@ -2795,7 +2877,7 @@ local function AttachElements(Section, Content, ctx)
 		Library.Defaults[flag] = ""
 		local Frame = New("Frame", {Size = UDim2.new(1, 0, 0, 18 + CTRL_H), BackgroundTransparency = 1, Parent = Cell()})
 		AddItem(text, Frame)
-		New("TextLabel", {Text = text, Size = UDim2.new(1, 0, 0, 14), TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Parent = Frame})
+		New("TextLabel", {Text = text, Size = UDim2.new(1, 0, 0, 14), TextSize = 14, TextTruncate = Enum.TextTruncate.AtEnd, Theme = {TextXAlignment = LabelAlign}, Parent = Frame})
 		local Box = New("Frame", {Size = UDim2.new(1, 0, 0, CTRL_H), Position = UDim2.new(0, 0, 1, -CTRL_H), Theme = {BackgroundColor3 = "Container"}, Parent = Frame})
 		Corner(Box, SMALL_R)
 		local BoxStroke = Stroke(Box, "Stroke", 0)
@@ -3516,11 +3598,14 @@ function Library:CreateWindow(options)
 	local Topbar = New("Frame", {Size = UDim2.new(1, 0, 0, TOP), Theme = {BackgroundColor3 = "Topbar"}, Parent = Window})
 	Corner(Topbar, 4)
 	New("Frame", {Size = UDim2.new(1, 0, 0, 4), Position = UDim2.new(0, 0, 1, -4), Theme = {BackgroundColor3 = "Topbar"}, Parent = Topbar})
-	New("Frame", {Size = UDim2.new(1, 0, 0, 1), Position = UDim2.fromOffset(0, TOP), Theme = {BackgroundColor3 = "Stroke"}, Parent = Window})
+	New("Frame", {Position = UDim2.fromOffset(0, TOP), Theme = {
+		BackgroundColor3 = function() return Style.TopAccent and Theme.Accent or Theme.Stroke end,
+		Size = function() return UDim2.new(1, 0, 0, Style.TopAccent and 2 or 1) end,
+	}, Parent = Window})
 	local TitleRow = New("Frame", {Size = UDim2.new(0.5, 0, 1, 0), Position = UDim2.fromOffset(14, 0), BackgroundTransparency = 1, Parent = Topbar})
 	ListLayout(TitleRow, 8, true, nil, Enum.VerticalAlignment.Center)
-	New("ImageLabel", {Image = ASSET_LOGO, Size = UDim2.fromOffset(22, 22), ScaleType = Enum.ScaleType.Fit, LayoutOrder = 1, Theme = {ImageColor3 = "Accent"}, Parent = TitleRow})
-	New("TextLabel", {Text = Config.Brand, TextSize = 20, Size = UDim2.fromOffset(0, 22), AutomaticSize = Enum.AutomaticSize.X, LayoutOrder = 2, Parent = TitleRow})
+	New("ImageLabel", {Image = ASSET_LOGO, Size = UDim2.fromOffset(22, 22), ScaleType = Enum.ScaleType.Fit, LayoutOrder = 1, Theme = {ImageColor3 = "Accent", Visible = function() return Style.TopLogo ~= false end}, Parent = TitleRow})
+	New("TextLabel", {Text = Config.Brand, Size = UDim2.fromOffset(0, 22), AutomaticSize = Enum.AutomaticSize.X, LayoutOrder = 2, Theme = {TextSize = function() return Style.TopSize or 20 end}, Parent = TitleRow})
 
 	local function TopButton(icon, xOff, hoverKey)
 		local b = New("ImageButton", {Size = UDim2.fromOffset(26, 26), Position = UDim2.new(1, xOff, 0.5, 0), AnchorPoint = Vector2.new(1, 0.5), BackgroundTransparency = 1, Theme = {BackgroundColor3 = "Container"}, Parent = Topbar})
@@ -3834,8 +3919,15 @@ function Library:CreateWindow(options)
 			end
 		end
 		local Title = New("TextLabel", {Text = name, TextSize = 14, TextTransparency = 0.5, Size = UDim2.new(1, -(textX + 6), 1, 0), Position = UDim2.fromOffset(textX, 0), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Parent = Btn})
+		local hasIcon = Ico ~= nil
+		local function ShowIcon() return hasIcon and (Compact or Style.TabIcons) end
+		if Ico then ThemeBind(Ico, {Visible = ShowIcon}) end
+		ThemeBind(Title, {Position = function() return UDim2.fromOffset(ShowIcon() and 34 or 14, 0) end})
+		local Ind = New("Frame", {Size = UDim2.fromOffset(3, 0), Position = UDim2.new(0, 0, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), Theme = {BackgroundColor3 = "Accent"}, Parent = Btn})
+		Corner(Ind, 2)
 		local function Visual(instant)
 			local t = instant and 0 or 0.15
+			Tween(Ind, {Size = UDim2.fromOffset(3, (active and Style.TabBar) and 16 or 0)}, t)
 			Tween(Btn, {BackgroundTransparency = active and 0 or 1}, t)
 			Tween(Title, {TextTransparency = active and 0 or (hovered and 0.2 or 0.5)}, t)
 			if Ico then Tween(Ico, {ImageTransparency = (active or hovered) and 0 or 0.5, ImageColor3 = active and Theme.Accent or Theme.Text}, t) end
@@ -3849,6 +3941,7 @@ function Library:CreateWindow(options)
 		end
 		Track(Btn.MouseEnter, function() hovered = true Visual() end)
 		Track(Btn.MouseLeave, function() hovered = false Visual() end)
+		table.insert(StyleHooks, function() Visual(true) end)
 		return {Instance = Btn, SetActive = function(state, instant) active = state Visual(instant) end}
 	end
 
@@ -4172,7 +4265,7 @@ function Library:CreateWindow(options)
 		local FontPicker = StyleSec:Dropdown("Font", "FontChoice", FontOrder, Library.FontName, "Code is the Obsidian look", function(name)
 			if type(name) == "string" and name ~= Library.FontName then Library:SetFont(name) end
 		end)
-		local CornerPicker = StyleSec:Dropdown("Corners", "CornerStyle", {"Sharp", "Default", "Round", "Soft"}, Library.Rounding, "How rounded boxes and buttons are", function(style)
+		local CornerPicker = StyleSec:Dropdown("Corners", "CornerStyle", {"Sharp", "Default", "Medium", "Round", "Soft"}, Library.Rounding, "How rounded boxes and buttons are", function(style)
 			if type(style) == "string" and style ~= Library.Rounding then Library:SetRounding(style) end
 		end)
 		StyleSec:Slider("Interface scale", "InterfaceScale", 60, 140, math.round(Library.UserScale * 100), 5, "Size of the whole menu in percent", function(v)
