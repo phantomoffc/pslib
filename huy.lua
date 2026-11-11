@@ -215,7 +215,7 @@ local Styles = {
 		StrokeT = 0.55, WindowT = 0.06, Dim = 0, Slider = "thin", Toggle = "switch",
 		ButtonCenter = false, CenterLabels = false, Gradient = false,
 		TabIcons = true, TabPill = false, Dividers = true, FlatChrome = false, WindowGradient = false,
-		TopAccent = false, TopLogo = true, TopSize = 16, PanelStrokeT = 0, ChromeT = 0.55,
+		TopAccent = false, TopLogo = true, TopSize = 16, PanelStrokeT = 0, ChromeT = 0.55, SideTitle = true,
 		Base = {},
 
 	},
@@ -356,6 +356,7 @@ local function Loop(obj, props, time)
 end
 
 local TEXT_CLASSES = {TextLabel = true, TextButton = true, TextBox = true}
+local AllScreens = {} -- every ScreenGui the library makes, so "Hide everything" can't miss one
 
 local function New(class, props)
 	local inst = Instance.new(class)
@@ -397,6 +398,10 @@ local function New(class, props)
 		if k ~= "Parent" and k ~= "Theme" then inst[k] = v end
 	end
 	if themeMap then ThemeBind(inst, themeMap) end
+	if class == "ScreenGui" then
+		table.insert(AllScreens, inst)
+		if Library.UIHidden then inst.Enabled = false end
+	end
 	if props.Parent then inst.Parent = props.Parent end
 	return inst
 end
@@ -524,12 +529,27 @@ local OwnedScreens = {"PhantomMiniButton", "PhantomTooltip", "PhantomNotificatio
 function Library:SetUIHidden(state)
 	state = state and true or false
 	Library.UIHidden = state
-	if Library.ScreenGui then pcall(function() Library.ScreenGui.Enabled = not state end) end
-	for _, g in pairs(GetParent():GetChildren()) do
-		if g:IsA("ScreenGui") and table.find(OwnedScreens, g.Name) then
+	for i = #AllScreens, 1, -1 do
+		local g = AllScreens[i]
+		if g.Parent then
 			pcall(function() g.Enabled = not state end)
+		else
+			table.remove(AllScreens, i)
 		end
 	end
+	-- anything left over from an older load
+	pcall(function()
+		for _, g in pairs(GetParent():GetChildren()) do
+			if g:IsA("ScreenGui") and (g.Name == Config.Name or table.find(OwnedScreens, g.Name)) then
+				g.Enabled = not state
+			end
+		end
+	end)
+	pcall(function()
+		if Library._Blur then
+			Library._Blur.Enabled = (not state) and Library.Open and Library.BlurEnabled and true or false
+		end
+	end)
 end
 
 function Library:SetTheme(name, silent)
@@ -1137,8 +1157,12 @@ function Library:Unload()
 	if Library.ScreenGui then pcall(function() Library.ScreenGui:Destroy() end) Library.ScreenGui = nil end
 	if Library.KeybindList then pcall(function() Library.KeybindList.Screen:Destroy() end) Library.KeybindList = nil end
 	pcall(function()
-		local blur = Lighting:FindFirstChild("PhantomBlur")
-		if blur then blur:Destroy() end
+		if Library._Blur then Library._Blur:Destroy() end
+		Library._Blur = nil
+		for _, where in ipairs({Lighting, workspace.CurrentCamera}) do
+			local blur = where and where:FindFirstChild("PhantomBlur")
+			if blur then blur:Destroy() end
+		end
 	end)
 	Library.Binds = {}
 	Library.BindOrder = {}
@@ -3653,7 +3677,7 @@ function Library:CreateWindow(options)
 	Corner(Footer, 4)
 	New("Frame", {Size = UDim2.new(1, 0, 0, 4), Theme = {BackgroundColor3 = "Topbar"}, Parent = Footer})
 	New("Frame", {Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 1, -(FOOT + 1)), Theme = {BackgroundColor3 = "Stroke", BackgroundTransparency = function() return Style.Dividers == false and 1 or 0 end}, Parent = Window})
-	New("TextLabel", {Text = GameName, TextSize = 13, Size = UDim2.new(1, -60, 1, 0), Position = UDim2.fromOffset(30, 0), TextTruncate = Enum.TextTruncate.AtEnd, Theme = {TextColor3 = "TextMuted"}, Parent = Footer})
+	New("TextLabel", {Text = GameName, TextSize = 13, Size = UDim2.new(1, -60, 1, 0), Position = UDim2.fromOffset(30, 0), TextTruncate = Enum.TextTruncate.AtEnd, Theme = {TextColor3 = "TextMuted", Visible = function() return not Style.SideTitle end}, Parent = Footer})
 
 	------------------------------------------------------------------ sidebar
 	local BODY_H = TOP + 1 + FOOT + 1
@@ -3663,7 +3687,13 @@ function Library:CreateWindow(options)
 	local MainStack = New("Frame", {Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = Clip})
 	local SetStack = New("Frame", {Size = UDim2.fromScale(1, 1), Position = UDim2.fromScale(1, 0), BackgroundTransparency = 1, Parent = Clip})
 
-	local TabContainer = New("ScrollingFrame", {Size = UDim2.new(1, 0, 1, -50), ScrollBarThickness = 0, Parent = MainStack})
+	local TabContainer = New("ScrollingFrame", {ScrollBarThickness = 0, Theme = {
+		Position = function() return Style.SideTitle and UDim2.fromOffset(0, 44) or UDim2.new() end,
+		Size = function() return Style.SideTitle and UDim2.new(1, 0, 1, -94) or UDim2.new(1, 0, 1, -50) end,
+	}, Parent = MainStack})
+	-- like the old library: game name on top of the tab list, cut off with "..." when too long
+	local SideTitle = New("TextLabel", {Text = GameName, Font = Config.FontBold, TextSize = 18, Size = UDim2.new(1, -28, 0, 24), Position = UDim2.fromOffset(14, 12), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Theme = {TextColor3 = "Accent", Visible = function() return Style.SideTitle == true end}, Parent = MainStack})
+	ApplyTooltip(SideTitle, GameName)
 	Padding(TabContainer, 8, Compact and 6 or 8, 8, Compact and 6 or 8)
 	ListLayout(TabContainer, 2)
 
@@ -3821,16 +3851,29 @@ function Library:CreateWindow(options)
 
 	
 	local openToken = 0
+	-- one blur that lives on the camera (games often wipe Lighting), and only one tween
+	-- at a time so spamming open / close can't leave it stuck on or off
+	local blurTween
 	local function SetBlur(on)
 		pcall(function()
-			local b = Lighting:FindFirstChild("PhantomBlur")
-			if on and not b then
+			local b = Library._Blur
+			if not (b and b.Parent) then
 				b = Instance.new("BlurEffect")
 				b.Name = "PhantomBlur"
 				b.Size = 0
-				b.Parent = Lighting
+				b.Parent = workspace.CurrentCamera
+				Library._Blur = b
 			end
-			if b then Tween(b, {Size = on and 14 or 0}, 0.4) end
+			if blurTween then blurTween:Cancel() end
+			b.Enabled = true
+			local mine = TweenService:Create(b, TweenInfo.new(on and 0.35 or 0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = on and 14 or 0})
+			blurTween = mine
+			mine:Play()
+			if not on then
+				mine.Completed:Connect(function(state)
+					if state == Enum.PlaybackState.Completed and blurTween == mine then b.Enabled = false end
+				end)
+			end
 		end)
 	end
 
