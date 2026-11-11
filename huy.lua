@@ -210,8 +210,8 @@ local Styles = {
 		Base = {},
 	},
 	["Fluent"] = {
-		Font = "Gotham", Rounding = "Default", Cards = true, CardPad = 11, CardT = 0.87, CardStrokeT = 0.35,
-		GroupPanel = false, GroupLine = true, TitleSize = 17, TitleDim = false,
+		Font = "Gotham", Rounding = "Default", Cards = true, CardPad = 11, CardT = 0.87, CardStrokeT = 0.75,
+		GroupPanel = false, GroupLine = false, TitleSize = 17, TitleDim = false,
 		StrokeT = 0.55, WindowT = 0.06, Dim = 0, Slider = "thin", Toggle = "switch",
 		ButtonCenter = false, CenterLabels = false, Gradient = false,
 		TabIcons = true, TabPill = false, Dividers = true, FlatChrome = false, WindowGradient = false,
