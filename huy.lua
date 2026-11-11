@@ -1310,8 +1310,22 @@ function Library:ConfigExists(name)
 	return isfile(Config.ConfigFolder .. "/" .. name .. ".json")
 end
 
+-- makes every folder in a path like "PhantomHub/BladeBall"
+local function EnsureFolder(path)
+	local built = ""
+	for part in string.gmatch((string.gsub(path, "\\", "/")), "[^/]+") do
+		built = built == "" and part or (built .. "/" .. part)
+		pcall(function()
+			if not isfolder(built) then makefolder(built) end
+		end)
+	end
+end
+Library.EnsureFolder = EnsureFolder
+
+-- the look (theme, style, keys...) is shared by every game: it lives in the top folder
 local function InterfacePath()
-	return Config.ConfigFolder .. "/_interface.json"
+	local root = string.match((string.gsub(Config.ConfigFolder, "\\", "/")), "^[^/]+") or Config.ConfigFolder
+	return root .. "/_interface.json"
 end
 
 local function SaveInterface()
@@ -3647,7 +3661,7 @@ function Library:CreateWindow(options)
 	end
 	if options.ConfigFolder then Config.ConfigFolder = options.ConfigFolder end
 	if options.Game then Library.HubConfig.Game = options.Game end
-	if not isfolder(Config.ConfigFolder) then makefolder(Config.ConfigFolder) end
+	EnsureFolder(Config.ConfigFolder)
 
 	Library:Unload()
 	LoadInterface()
