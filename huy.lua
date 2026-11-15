@@ -499,7 +499,7 @@ local function Interactive(btn, stroke, baseKey)
 end
 
 
-local OwnedScreens = {"PhantomMiniButton", "PhantomTooltip", "PhantomNotifications", "PhantomWatermark", "PhantomConsole", "PrismaKeybinds", "PhantomDraggableLabel"}
+local OwnedScreens = {"PhantomCursor", "PhantomMiniButton", "PhantomTooltip", "PhantomNotifications", "PhantomWatermark", "PhantomConsole", "PrismaKeybinds", "PhantomDraggableLabel"}
 
 function Library:SetUIHidden(state)
 	state = state and true or false
@@ -4311,6 +4311,51 @@ function Library:CreateWindow(options)
 	end
 	Library._ShowWindow = ShowWindow
 
+	if Library.FreeMouse == nil then Library.FreeMouse = true end
+	local CursorGui = New("ScreenGui", {Name = "PhantomCursor", IgnoreGuiInset = true, ResetOnSpawn = false, DisplayOrder = 2147483647, Parent = GetParent()})
+	local ModalButton = New("TextButton", {Modal = true, Text = "", BackgroundTransparency = 1, Size = UDim2.fromOffset(1, 1), Visible = false, Parent = CursorGui})
+	local CursorImage = New("ImageLabel", {Image = "rbxasset://textures/Cursors/KeyboardMouse/ArrowFarCursor.png", BackgroundTransparency = 1, Size = UDim2.fromOffset(64, 64), AnchorPoint = Vector2.new(0.5, 0.5), Visible = false, ZIndex = 10, Parent = CursorGui})
+	local mouseState = {freed = false, iconBefore = true}
+	local function MouseStep()
+		local want = Library.Open and Library.FreeMouse and not Library.UIHidden and not Library.Unloaded
+		ModalButton.Visible = want and true or false
+		if want then
+			if not mouseState.freed then
+				mouseState.freed = true
+				mouseState.iconBefore = UserInputService.MouseIconEnabled
+			end
+			if UserInputService.MouseBehavior ~= Enum.MouseBehavior.Default then
+				UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+			end
+			if not UserInputService.MouseIconEnabled then
+				pcall(function() UserInputService.MouseIconEnabled = true end)
+			end
+			local drawOwn = not UserInputService.MouseIconEnabled and not IsTouchOnly()
+			CursorImage.Visible = drawOwn
+			if drawOwn then
+				local pos = UserInputService:GetMouseLocation()
+				CursorImage.Position = UDim2.fromOffset(pos.X, pos.Y)
+			end
+		elseif mouseState.freed then
+			mouseState.freed = false
+			CursorImage.Visible = false
+			pcall(function() UserInputService.MouseIconEnabled = mouseState.iconBefore end)
+		end
+	end
+	pcall(function()
+		RunService:UnbindFromRenderStep("PhantomFreeMouse")
+	end)
+	RunService:BindToRenderStep("PhantomFreeMouse", Enum.RenderPriority.Last.Value + 5, function()
+		pcall(MouseStep)
+	end)
+	table.insert(Library.UnloadCallbacks, function()
+		pcall(function() RunService:UnbindFromRenderStep("PhantomFreeMouse") end)
+		if mouseState.freed then
+			pcall(function() UserInputService.MouseIconEnabled = mouseState.iconBefore end)
+		end
+		pcall(function() CursorGui:Destroy() end)
+	end)
+
 	Track(CloseBtn.MouseButton1Click, function()
 		ShowWindow(false)
 		task.delay(0.3, function() Library:Unload() end)
@@ -4678,6 +4723,9 @@ function Library:CreateWindow(options)
 		Iface:Toggle("Animations", "AnimationsToggle", Library.Animations, "Turn off for instant transitions", function(state)
 			Library.Animations = state
 			MarkInterface()
+		end)
+		Iface:Toggle("Free mouse", "FreeMouseToggle", Library.FreeMouse ~= false, "Unlocks and shows your mouse while the menu is open, even in first-person games", function(state)
+			Library.FreeMouse = state
 		end)
 		Iface:Toggle("Console", "ConsoleToggle", false, "Window with info, warnings and errors", function(state)
 			Library:SetConsoleVisible(state)
