@@ -70,13 +70,6 @@ local Config = {
 }
 
 
-
-
-
--- Each theme tints the whole UI, Fluent-style: the window is painted with a gradient
--- (BgTop -> BgBottom), and the bars, panels, controls and outlines are tinted to match.
---   Sidebar/Topbar  bars that sit over the gradient     Section  groupbox panels
---   Container       buttons, switches, boxes            Card     Fluent element cards
 local function T(t)
 	t.Success = t.Success or "#5fd38d"
 	t.Warning = t.Warning or "#ffc455"
@@ -87,7 +80,6 @@ local function T(t)
 	return t
 end
 local Themes = {
-	-- from Fluent's own themes
 	["Dark"] = T{
 		BgTop = "#2b2b2b", BgBottom = "#1d1d1d", Sidebar = "#1a1a1a", Section = "#222222",
 		Container = "#313131", Card = "#787878", Stroke = "#3d3d3d",
@@ -113,7 +105,6 @@ local Themes = {
 		Container = "#6a2848", Card = "#c878aa", Stroke = "#80405f",
 		TextDark = "#e0b8cc", TextMuted = "#a07489", Accent = "#ff5c9a", Accent2 = "#ffa3c6",
 	},
-	-- ours
 	["Christmas"] = T{
 		BgTop = "#1e4a33", BgBottom = "#0d2419", Sidebar = "#0c2016", Section = "#13301f",
 		Container = "#1d412d", Card = "#6fa58a", Stroke = "#2c5a40",
@@ -150,14 +141,12 @@ local Themes = {
 		Container = "#1f3747", Card = "#7aa4bd", Stroke = "#2f4d61",
 		TextDark = "#b6cfdd", TextMuted = "#73909f", Accent = "#7fd6ff", Accent2 = "#c2b8ff",
 	},
-	-- plain black, for people who still want it
 	["Obsidian"] = T{
 		BgTop = "#121212", BgBottom = "#0e0e0e", Sidebar = "#0d0d0d", Section = "#0d0d0d",
 		Container = "#191919", Card = "#3a3a3a", Stroke = "#282828",
 		TextDark = "#9a9a9a", TextMuted = "#5c5c5c", Accent = "#7d55ff", Accent2 = "#b18cff",
 		Text = "#ffffff",
 	},
-	-- macOS-style near-black with white accents, made for the Main style
 	["Main"] = T{
 		BgTop = "#121212", BgBottom = "#0c0c0c", Sidebar = "#0f0f0f", Topbar = "#0f0f0f", Section = "#2c2c2c",
 		Container = "#1c1c1c", Card = "#3a3a3a", Stroke = "#262626",
@@ -192,19 +181,6 @@ local function DeriveTheme()
 	Theme.StrokeHover = Theme.Stroke:Lerp(Theme.Text, 0.12)
 end
 
-----------------------------------------------------------------------------------------------------
--- UI styles: whole-look presets. The accent theme sits on top of whichever style is active.
---   Cards      each element sits on its own card (Fluent)
---   GroupPanel sections are boxed panels (Obsidian)
---   Dim        how faded an "off" toggle label is
---   Slider     "bar" = value written inside a 15px bar, "thin" = 4px rail + round thumb
---   WindowT    window transparency (Fluent's see-through acrylic look)
-----------------------------------------------------------------------------------------------------
--- extra tokens:
---   Toggle "switch" | "check"     TabIcons / TabPill  sidebar icons / accent-tinted active tab
---   ButtonCenter   centered text  CenterLabels        labels above controls are centered
---   TitleSize / TitleDim / GroupLine   groupbox title look     Gradient   soft shade on controls
---   TopAccent  accent line under the top bar     TopLogo / TopSize   top bar logo / title size
 local Styles = {
 	["Obsidian"] = {
 		Font = "Code", Rounding = "Default", Cards = false, CardPad = 0, CardT = 1, CardStrokeT = 1,
@@ -225,8 +201,6 @@ local Styles = {
 		Base = {},
 
 	},
-	-- macOS-style: full-height sidebar with window dots, title and tabs, a bar over the content with
-	-- the open tab's name, faint panels and outlines, grey/white switches, inline sliders
 	["Main"] = {
 		Font = "Builder Sans", Rounding = "Round", Cards = false, CardPad = 0, CardT = 1, CardStrokeT = 1,
 		GroupPanel = true, GroupLine = false, TitleSize = 14, TitleDim = true, SecPad = 14,
@@ -250,7 +224,6 @@ local function LabelAlign()
 end
 Library.Styles = Styles
 
--- user color overrides (Settings > Appearance > Colors); they stay when switching themes
 Library.CustomColors = {}
 local function LoadPalette(name)
 	local palette = Themes[name] or Themes["Phantom Red"]
@@ -262,8 +235,6 @@ local function LoadPalette(name)
 end
 LoadPalette(Library.CurrentTheme)
 
--- Every themed property is registered here so theme changes can tween smoothly.
--- A value is either a theme key ("Accent") or a function returning the value (for state-dependent looks).
 local Bound = {}
 local ThemeHooks = {}
 local HooksPending = false
@@ -314,8 +285,6 @@ local function RefreshTheme(animate)
 			end
 		end
 	end
-	-- hooks (console rebuild, keybind list, decor...) are batched so dragging the
-	-- accent picker doesn't rebuild everything every frame
 	if not HooksPending then
 		HooksPending = true
 		task.delay(0.08, function()
@@ -325,9 +294,6 @@ local function RefreshTheme(animate)
 	end
 end
 
-----------------------------------------------------------------------------------------------------
--- Core helpers
-----------------------------------------------------------------------------------------------------
 
 local GuiParent
 local function GetParent()
@@ -375,7 +341,7 @@ local function Loop(obj, props, time)
 end
 
 local TEXT_CLASSES = {TextLabel = true, TextButton = true, TextBox = true}
-local AllScreens = {} -- every ScreenGui the library makes, so "Hide everything" can't miss one
+local AllScreens = {}
 
 local function New(class, props)
 	local inst = Instance.new(class)
@@ -409,7 +375,6 @@ local function New(class, props)
 		inst.ScrollingDirection = Enum.ScrollingDirection.Y
 		if not (themeMap and themeMap.ScrollBarImageColor3) then ThemeBind(inst, {ScrollBarImageColor3 = "Accent"}) end
 	end
-	-- text/image/scroll objects start transparent, but if a background color is given they should show it
 	if props.BackgroundTransparency == nil and inst:IsA("GuiObject") and (props.BackgroundColor3 ~= nil or (themeMap and themeMap.BackgroundColor3 ~= nil)) then
 		inst.BackgroundTransparency = 0
 	end
@@ -425,8 +390,6 @@ local function New(class, props)
 	return inst
 end
 
--- corner style ("Sharp" / "Default" / "Medium" / "Round" / "Soft") scales the 2px and 4px style corners;
--- circles and tiny dots keep their radius
 local Corners = {}
 local RoundingScale = {Sharp = 0, Default = 1, Medium = 1.75, Round = 2.5, Soft = 3}
 local function ScaledRadius(base)
@@ -465,7 +428,6 @@ local FontChoices = {
 local FontOrder = {"Code", "Gotham", "Builder Sans", "Builder Sans Bold", "Ubuntu", "Source Sans", "Arial"}
 Library.FontName = "Builder Sans"
 
--- outlines created fully visible follow the style's outline strength
 local function Stroke(parent, key, transparency, thickness)
 	local map = {Color = key or "Stroke"}
 	if (transparency or 0) == 0 then
@@ -505,7 +467,6 @@ local function UIScaleValue()
 	return 1
 end
 
--- mouse position in the same space as AbsolutePosition
 local function MousePos()
 	return UserInputService:GetMouseLocation() - GuiService:GetGuiInset()
 end
@@ -514,10 +475,8 @@ local function IsTouchOnly()
 	return UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 end
 
--- click ripples are off in every style; kept so older calls still work
 local function Ripple(btn) end
 
--- standard hover / press feel for button-like things
 local function Interactive(btn, stroke, baseKey)
 	baseKey = baseKey or "Container"
 	local hovered = false
@@ -539,9 +498,6 @@ local function Interactive(btn, stroke, baseKey)
 	end)
 end
 
-----------------------------------------------------------------------------------------------------
--- UI hide / theme / style API
-----------------------------------------------------------------------------------------------------
 
 local OwnedScreens = {"PhantomMiniButton", "PhantomTooltip", "PhantomNotifications", "PhantomWatermark", "PhantomConsole", "PrismaKeybinds", "PhantomDraggableLabel"}
 
@@ -556,7 +512,6 @@ function Library:SetUIHidden(state)
 			table.remove(AllScreens, i)
 		end
 	end
-	-- anything left over from an older load
 	pcall(function()
 		for _, g in pairs(GetParent():GetChildren()) do
 			if g:IsA("ScreenGui") and (g.Name == Config.Name or table.find(OwnedScreens, g.Name)) then
@@ -587,7 +542,6 @@ function Library:UpdateTheme(newColor)
 	Library.InterfaceDirty = true
 end
 
--- override one base color (Background, Section, Container, Stroke, Text, ...), nil puts the style's back
 function Library:SetColor(key, color)
 	if not table.find(ThemeKeys, key) then return end
 	Library.CustomColors[key] = typeof(color) == "Color3" and color or nil
@@ -629,7 +583,6 @@ function Library:SetFont(name)
 	Library.InterfaceDirty = true
 end
 
--- swap the whole look (see Styles); keeps the accent theme and custom colors
 local StyleHooks = {}
 function Library:SetStyle(name)
 	local st = Styles[name]
@@ -650,9 +603,6 @@ function Library:SetStyle(name)
 	return true
 end
 
-----------------------------------------------------------------------------------------------------
--- Icons
-----------------------------------------------------------------------------------------------------
 
 local Icons = {
 	["swords"] = {16898613777, 967, 759},
@@ -781,9 +731,6 @@ local function IconImage(parent, icon, size, props)
 	return img
 end
 
-----------------------------------------------------------------------------------------------------
--- Seasonal decor (Halloween cobwebs + spiders, Christmas snow)
-----------------------------------------------------------------------------------------------------
 
 local function DecorLine(parent, x1, y1, x2, y2, colorKey, transparency, thickness)
 	local dx, dy = x2 - x1, y2 - y1
@@ -887,7 +834,6 @@ local function BuildHalloweenDecor(win, top)
 	return Decor
 end
 
--- gentle snowfall drawn over the window for the Christmas theme
 local function BuildChristmasDecor(win, top)
 	local Decor = New("Frame", {Name = "SeasonDecor", Size = UDim2.new(1, 0, 1, -top), Position = UDim2.fromOffset(0, top), BackgroundTransparency = 1, ClipsDescendants = true, ZIndex = 15, Parent = win})
 	local flakes = {}
@@ -928,9 +874,6 @@ local function BuildChristmasDecor(win, top)
 	return Decor
 end
 
-----------------------------------------------------------------------------------------------------
--- Hub info
-----------------------------------------------------------------------------------------------------
 
 Library.HubConfig = {
 	Name = "Phantom Softworks",
@@ -987,9 +930,6 @@ local function FormatNumber(value, increment)
 	end
 	return tostring(value)
 end
-
-
-
 
 
 local Drag_Update, Drag_Input, Drag_Driver = nil, nil, nil
@@ -1069,7 +1009,6 @@ end
 local function GetBaseScale()
 	local vp = workspace.CurrentCamera.ViewportSize
 	if vp.X < 1 or vp.Y < 1 then return 1 end
-	-- phones: keep text readable, the window shrinks to fit instead (see CreateWindow)
 	if IsTouchOnly() then return math.clamp(math.min(vp.Y / 460, vp.X / 700), 0.55, 1) end
 	local scale = math.min(vp.X / 950, vp.Y / 560)
 	if scale < 1 then return math.clamp(scale * 0.95, 0.4, 1) end
@@ -1079,9 +1018,6 @@ end
 local function EffectiveScale()
 	return GetBaseScale() * Library.UserScale
 end
-
-
-
 
 
 Library.Logs = {}
@@ -1156,12 +1092,8 @@ local function WrapCallback(name, callback, isToggle)
 end
 
 
-
-
-
 local Tooltip = {}
 
--- scripts can register cleanup that runs when the hub is unloaded
 Library.UnloadCallbacks = {}
 function Library:OnUnload(fn)
 	if type(fn) == "function" then table.insert(Library.UnloadCallbacks, fn) end
@@ -1174,7 +1106,6 @@ function Library:Unload()
 	Library.Unloaded = true
 	for _, conn in ipairs(Library.Connections) do pcall(function() conn:Disconnect() end) end
 	Library.Connections = {}
-	-- switch every toggle off so the script's loops and hooks stop together with the hub
 	local notify = Library.Notify
 	Library.Notify = function() end
 	for flag, value in pairs(Library.Flags) do
@@ -1216,9 +1147,6 @@ function Library:Unload()
 		end
 	end
 end
-
-
-
 
 
 function Library:GetConfigs()
@@ -1340,7 +1268,6 @@ function Library:ConfigExists(name)
 	return isfile(Config.ConfigFolder .. "/" .. name .. ".json")
 end
 
--- makes every folder in a path like "PhantomHub/BladeBall"
 local function EnsureFolder(path)
 	local built = ""
 	for part in string.gmatch((string.gsub(path, "\\", "/")), "[^/]+") do
@@ -1352,7 +1279,6 @@ local function EnsureFolder(path)
 end
 Library.EnsureFolder = EnsureFolder
 
--- the look (theme, style, keys...) is shared by every game: it lives in the top folder
 local function InterfacePath()
 	local root = string.match((string.gsub(Config.ConfigFolder, "\\", "/")), "^[^/]+") or Config.ConfigFolder
 	return root .. "/_interface.json"
@@ -1388,7 +1314,6 @@ local function LoadInterface()
 	local ok, data = pcall(function() return HttpService:JSONDecode(readfile(InterfacePath())) end)
 	if not ok or type(data) ~= "table" then return end
 	if data.Look ~= 3 then
-		-- older save: keep keys and toggles, but start on the new Main look
 		data.Colors, data.Style, data.Font, data.Rounding, data.Theme, data.Accent = nil, nil, nil, nil, nil, nil
 	end
 	if type(data.Colors) == "table" then
@@ -1431,9 +1356,6 @@ local function LoadInterface()
 	pcall(function() if data.MenuKey then Config.Keybind = Enum.KeyCode[data.MenuKey] end end)
 	pcall(function() if data.HideKey then Config.HideKeybind = Enum.KeyCode[data.HideKey] end end)
 end
-
-
-
 
 
 local function BuildTooltip()
@@ -1488,9 +1410,6 @@ local function ApplyTooltip(guiObj, text)
 end
 
 
-
-
-
 local NotifyColors = {Info = "Accent", Success = "Success", Warning = "Warning", Error = "Danger"}
 local NotifyIcons = {Info = "info", Success = "sparkles", Warning = "bell", Error = "skull"}
 local NotifyOrder = 0
@@ -1514,8 +1433,6 @@ function Library:Notify(title, text, duration, kind)
 	local Gui = GetParent():FindFirstChild("PhantomNotifications")
 	if not Gui then
 		Gui = New("ScreenGui", {Name = "PhantomNotifications", IgnoreGuiInset = true, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, DisplayOrder = 50, ResetOnSpawn = false, Enabled = not Library.UIHidden, Parent = GetParent()})
-		-- phones: shrink the whole stack like the menu; the frame is made taller by 1/scale so it
-		-- still reaches the bottom of the screen after scaling
 		local sc = 1
 		if IsTouchOnly() then
 			local vp = workspace.CurrentCamera.ViewportSize
@@ -1528,7 +1445,6 @@ function Library:Notify(title, text, duration, kind)
 	local Holder = Gui:FindFirstChild("Container")
 	local holderScale = Holder:FindFirstChildOfClass("UIScale")
 	local nScale = holderScale and holderScale.Scale or 1
-	-- place the stack in the corner picked in Settings > General
 	local side = Library.NotifySide or "Bottom right"
 	local onRight = side:find("right") ~= nil
 	local onTop = side:find("Top") ~= nil
@@ -1547,8 +1463,6 @@ function Library:Notify(title, text, duration, kind)
 		BackgroundTransparency = function() return math.max(Style.WindowT or 0, 0.03) end,
 	}, Parent = Slot})
 	New("UIGradient", {Rotation = 90, Theme = {Color = function() return ColorSequence.new(Theme.BgTop, Theme.BgBottom) end}, Parent = Card})
-	-- Main gets MacLib's card: title and text, an x to close, no icon and no coloured edges.
-	-- The other styles keep the icon card with a bar along the bottom that runs out with the time.
 	local mac = Style.MacLayout == true
 	Corner(Card, mac and 10 or 6)
 	Stroke(Card, mac and "Stroke" or function() return Theme.Stroke:Lerp(Theme[colorKey], 0.35) end, 0)
@@ -1593,9 +1507,6 @@ function Library:Notify(title, text, duration, kind)
 		task.delay(duration, Close)
 	end)
 end
-
-
-
 
 
 function Library:InitWatermark()
@@ -1647,14 +1558,10 @@ function Library:InitWatermark()
 end
 
 
-
-
-
 local function BindHasKey(key)
 	return key ~= nil and key ~= "None" and key ~= "Unknown" and key ~= ""
 end
 
--- PC: every bound key shows up. Mobile: only toggles the user pinned show up, as tap buttons.
 local function BindIsListed(entry)
 	if IsTouchOnly() then return entry.MobilePinned == true and entry.Toggle ~= nil end
 	return BindHasKey(entry.Key) and entry.Mode ~= "Always"
@@ -1713,7 +1620,6 @@ end
 local function CreateBindRow(name, entry)
 	local Container = Library.KeybindList.Container
 	if IsTouchOnly() then
-		-- big tap target: name + switch
 		local Row = New("TextButton", {Name = name, Size = UDim2.new(1, 0, 0, 30), Visible = false, Theme = {BackgroundColor3 = "Container"}, Parent = Container})
 		Corner(Row, 2)
 		Stroke(Row, "Stroke", 0)
@@ -1761,9 +1667,6 @@ end
 function Library:UpdateKeybindList(name, key, active, mode)
 	Library:RegisterBind(name, {Key = key, Active = active, Mode = mode})
 end
-
-
-
 
 
 function Library:CreateConsole()
@@ -1922,10 +1825,6 @@ function Library:SetConsoleVisible(state)
 end
 
 
-
-
-
--- Obsidian-style sizing: short controls, thin outlines, small corners
 local CTRL_H = 21
 local SMALL_R = 2
 
@@ -2092,9 +1991,6 @@ local function CreatePreviewController(VP, Cam)
 	return ctrl
 end
 
-----------------------------------------------------------------------------------------------------
--- Dropdown: label on top, 21px box, list opens underneath and pushes the content down
-----------------------------------------------------------------------------------------------------
 
 local function CreateDropdownElement(text, flag, options, default, tooltipText, callback, parentFrame, sectionRef, isMulti, customParent, layoutOrder)
 	options = options or {}
@@ -2113,7 +2009,6 @@ local function CreateDropdownElement(text, flag, options, default, tooltipText, 
 	Library.Flags[flag] = selected
 
 	local hasLabel = type(text) == "string" and text ~= ""
-	-- Main style: one full-width row, name on the left, choice on the right, grid icon at the end
 	local function Inline() return hasLabel and Style.InlineDropdown == true end
 	local function LabelH() return (hasLabel and not Inline()) and 18 or 0 end
 	local function BoxH() return Inline() and 34 or CTRL_H end
@@ -2315,16 +2210,7 @@ local function CreateDropdownElement(text, flag, options, default, tooltipText, 
 	return DropdownObj
 end
 
-----------------------------------------------------------------------------------------------------
--- Slider: label on top, 15px bar with the value written inside it
--- right click the bar to type an exact value
-----------------------------------------------------------------------------------------------------
 
--- Slider shapes (Style.Slider):
---   "bar"    Obsidian: label on top, 15px bar with "value/max" written inside, right click to type
---   "thin"   Fluent:   label left, value + 4px rail + round thumb on the right
---   "og"     OG:       label left, value top right, 6px bar underneath
---   "capsule" Modern:  one rounded pill; gradient fill, name inside on the left, value inside on the right
 local function CreateSliderElement(text, flag, min, max, default, increment, tooltipText, callback, parentFrame, addItem, layoutOrder, compact)
 	increment = increment or 1
 	callback = WrapCallback(text, callback, false)
@@ -2360,7 +2246,6 @@ local function CreateSliderElement(text, flag, min, max, default, increment, too
 		}, Parent = Frame})
 	end
 
-	-- bar
 	local Bar = New("TextButton", {Size = UDim2.new(1, 0, 0, 15), Position = UDim2.new(0, 0, 1, -15), Theme = {BackgroundColor3 = "Container", Visible = Is("bar")}, Parent = Frame})
 	Corner(Bar, SMALL_R)
 	local St = Stroke(Bar, "Stroke", 0)
@@ -2371,7 +2256,6 @@ local function CreateSliderElement(text, flag, min, max, default, increment, too
 	local Input = New("TextBox", {Size = UDim2.fromScale(1, 1), TextSize = 14, ZIndex = 3, Visible = false, BackgroundTransparency = 0, Theme = {BackgroundColor3 = "Container"}, Parent = Bar})
 	Corner(Input, SMALL_R)
 
-	-- thin
 	local ThinWrap = New("Frame", {BackgroundTransparency = 1, AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromScale(1, 0), Size = compact and UDim2.fromScale(1, 1) or UDim2.new(0.55, 0, 1, 0), Theme = {Visible = Is("thin")}, Parent = Frame})
 	local function VB() return Style.ValueBox == true end
 	local ThinValue = New("TextBox", {TextSize = 13, Theme = {
@@ -2401,7 +2285,6 @@ local function CreateSliderElement(text, flag, min, max, default, increment, too
 		Position = function() return VB() and UDim2.new() or UDim2.fromOffset(56, 0) end,
 	}, Parent = ThinWrap})
 
-	-- og
 	local OgValue = New("TextBox", {Size = UDim2.new(0, 56, 0, 16), Position = UDim2.fromScale(1, 0), AnchorPoint = Vector2.new(1, 0), TextSize = 14, TextXAlignment = Enum.TextXAlignment.Right, Theme = {Visible = Is("og")}, Parent = Frame})
 	local OgBar = New("Frame", {Size = UDim2.new(1, 0, 0, 6), Position = UDim2.new(0, 0, 1, -6), Theme = {BackgroundColor3 = "Container", Visible = Is("og")}, Parent = Frame})
 	New("UICorner", {CornerRadius = UDim.new(0, 3), Parent = OgBar})
@@ -2410,7 +2293,6 @@ local function CreateSliderElement(text, flag, min, max, default, increment, too
 	New("UICorner", {CornerRadius = UDim.new(0, 3), Parent = OgFill})
 	local OgHit = New("TextButton", {Size = UDim2.new(1, 0, 0, 14), Position = UDim2.new(0, 0, 1, -10), Theme = {Visible = Is("og")}, Parent = Frame})
 
-	-- capsule
 	local Capsule = New("TextButton", {Size = UDim2.new(1, 0, 0, 30), Theme = {BackgroundColor3 = "Container", Visible = Is("capsule")}, Parent = Frame})
 	New("UICorner", {CornerRadius = UDim.new(0, 9), Parent = Capsule})
 	local CFill = New("Frame", {Size = UDim2.new(Ratio(), 0, 1, 0), BackgroundColor3 = Color3.new(1, 1, 1), BackgroundTransparency = 0.1, Parent = Capsule})
@@ -2494,12 +2376,8 @@ local function CreateSliderElement(text, flag, min, max, default, increment, too
 	return Frame
 end
 
-----------------------------------------------------------------------------------------------------
--- Groupbox + elements
-----------------------------------------------------------------------------------------------------
 
 local function CreateSectionFrame(text, parent, order)
-	-- GroupPanel styles box the section; the others just show a title above the cards
 	local function panel(a, b) return function() if Style.GroupPanel then return a end return b end end
 	local Container = New("Frame", {Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = order or 0, Theme = {BackgroundColor3 = "Section", BackgroundTransparency = function() return Style.GroupPanel and (Style.PanelT or 0) or 1 end}, Parent = parent})
 	Corner(Container, 4)
@@ -2530,7 +2408,6 @@ local function CreateSectionFrame(text, parent, order)
 	return Container, Content, Title
 end
 
--- ctx: {SectionName, Bindable, AddItem(name, inst), Page, OpenMenu, MakeFull}
 local function AttachElements(Section, Content, ctx)
 	local order = 0
 	local function NextOrder()
@@ -2541,7 +2418,6 @@ local function AttachElements(Section, Content, ctx)
 	Section._NextOrder = NextOrder
 	local AddItem = ctx.AddItem or function() end
 
-	-- every element lives in a cell; card styles turn the cell into a card
 	local function Cell()
 		local c = New("Frame", {
 			Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = NextOrder(),
@@ -2586,7 +2462,6 @@ local function AttachElements(Section, Content, ctx)
 		return New("Frame", {Size = UDim2.new(1, 0, 0, 1), LayoutOrder = NextOrder(), Theme = {BackgroundColor3 = "Stroke"}, Parent = Content})
 	end
 
-	-- "+ text" / "~ text" / "- text" lines, used by the changelog
 	function Section:Bullet(ltext, col)
 		local Frame = New("Frame", {Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = NextOrder(), Parent = Content})
 		AddItem(ltext, Frame)
@@ -2596,7 +2471,6 @@ local function AttachElements(Section, Content, ctx)
 		New("TextLabel", {Size = UDim2.new(1, -16, 0, 0), Position = UDim2.fromOffset(16, 0), AutomaticSize = Enum.AutomaticSize.Y, Text = tostring(ltext), TextSize = 14, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, Theme = {TextColor3 = "TextDark"}, Parent = Frame})
 	end
 
-	-- read-only "label .... value" line, value can be updated with :Set
 	function Section:Row(text, value)
 		local RowObj = {Value = tostring(value or "")}
 		local Frame = New("Frame", {Size = UDim2.new(1, 0, 0, 16), BackgroundTransparency = 1, LayoutOrder = NextOrder(), Parent = Content})
@@ -2613,7 +2487,6 @@ local function AttachElements(Section, Content, ctx)
 	function Section:Button(text, tooltipText, callback)
 		local Btn = FlatButton(Cell(), text, 0)
 		AddItem(text, Btn)
-		-- on a card the card itself is the button look
 		local function Plain() return Style.PlainButtons == true end
 		ThemeBind(Btn, {
 			BackgroundTransparency = function() return (Style.Cards or Plain()) and 1 or 0 end,
@@ -2621,7 +2494,6 @@ local function AttachElements(Section, Content, ctx)
 			Size = function() return UDim2.new(1, 0, 0, (Plain() and Style.RowH) or CTRL_H) end,
 		})
 		ThemeBind(Btn:FindFirstChildOfClass("UIStroke"), {Transparency = function() return (Style.Cards or Plain()) and 1 or Style.StrokeT end})
-		-- Main style: plain row, the text and an arrow on the right brighten on hover
 		local Arrow = New("ImageLabel", {Image = ASSET_BUTTON, Size = UDim2.fromOffset(15, 15), Position = UDim2.new(1, -2, 0.5, 0), AnchorPoint = Vector2.new(1, 0.5), ImageTransparency = 0.5, Theme = {ImageColor3 = "Text", Visible = Plain}, Parent = Btn})
 		ThemeBind(Btn, {TextTransparency = function() return Plain() and 0.3 or 0 end})
 		Track(Btn.MouseEnter, function()
@@ -2689,7 +2561,6 @@ local function AttachElements(Section, Content, ctx)
 			Parent = Switch,
 		})
 		New("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Ball})
-		-- OG checkbox
 		local Check = New("Frame", {Theme = {
 			BackgroundColor3 = function() return Style.CheckLeft and Theme.Container or Theme.Background end,
 			Visible = function() return Style.Toggle == "check" end,
@@ -2713,7 +2584,6 @@ local function AttachElements(Section, Content, ctx)
 			Tween(Label, {TextTransparency = toggled and 0 or Style.Dim}, 0.18)
 		end)
 
-		-- children of the toggle (AddButton / AddSlider / AddDropdown), shown while it is on
 		local Sub = New("Frame", {Name = "Sub" .. text, Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1, ClipsDescendants = true, Visible = false, LayoutOrder = 2, Parent = ToggleCell})
 		local Inner = New("Frame", {Size = UDim2.new(1, -14, 0, 0), Position = UDim2.fromOffset(12, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Parent = Sub})
 		Padding(Inner, 1, 0, 1, 0)
@@ -2882,7 +2752,6 @@ local function AttachElements(Section, Content, ctx)
 			end
 			PushBind()
 		elseif bindable and ctx.Bindable and IsTouchOnly() then
-			-- mobile has no keyboard: a "Pin" chip puts this toggle in the floating Quick toggles panel
 			local bindName = text
 			if Library.Binds[bindName] then bindName = text .. " (" .. tostring(ctx.SectionName) .. ")" end
 			ToggleObj.BindName = bindName
@@ -2948,8 +2817,6 @@ local function AttachElements(Section, Content, ctx)
 			if toggled then ToggleAnim() end
 			return d
 		end
-		-- any elements (toggles, sliders, dropdowns, dividers...) that fold out under this toggle
-		-- and only show while it's on: local opts = MyToggle:Options() opts:Slider(...)
 		local subSection
 		function ToggleObj:Options()
 			if not subSection then
@@ -2978,7 +2845,6 @@ local function AttachElements(Section, Content, ctx)
 		return ToggleObj
 	end
 
-	-- label on the left, key box on the right
 	local function KeyRow(text)
 		local Frame = New("Frame", {Size = UDim2.new(1, 0, 0, 18), BackgroundTransparency = 1, Parent = Cell()})
 		AddItem(text, Frame)
@@ -3093,7 +2959,6 @@ local function AttachElements(Section, Content, ctx)
 		return BindObj
 	end
 
-	-- simple key capture row (no keybind list entry), used by settings
 	function Section:KeyPicker(text, defaultKey, callback, allowNone)
 		local key = defaultKey or Enum.KeyCode.Unknown
 		local _, Chip, ChipStroke = KeyRow(text)
@@ -3118,7 +2983,6 @@ local function AttachElements(Section, Content, ctx)
 				conn:Disconnect()
 				Tween(ChipStroke, {Color = Theme.Stroke}, 0.15)
 				Show()
-				-- let this key press finish before the new bind becomes active
 				task.defer(function()
 					binding = false
 					if callback then callback(key) end
@@ -3790,14 +3654,263 @@ local function AttachElements(Section, Content, ctx)
 end
 
 
+local function BuildServersTab(WindowObj)
+	local TeleportService = game:GetService("TeleportService")
+	local LocalPlayer = Players.LocalPlayer
+	for _, f in ipairs({ "PhantomSrvSort", "PhantomSrvMin", "PhantomSrvMax", "PhantomSrvSearch", "PhantomSrvList", "PhantomSrvTarget", "PhantomSrvJoinId", "PhantomSrvAutoHop", "PhantomSrvHopEvery" }) do
+		IgnoredFlags[f] = true
+	end
 
+	local Tab = WindowObj:Tab("Servers", "earth")
+	local State = { servers = {}, shown = {}, sort = "Lowest Players", min = 0, max = Players.MaxPlayers, search = "", target = math.max(1, math.floor(Players.MaxPlayers / 2)), busy = false }
 
+	local function Fetch()
+		local list, cursor = {}, ""
+		for _ = 1, 5 do
+			local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100" .. (cursor ~= "" and ("&cursor=" .. cursor) or "")
+			local ok, body = pcall(function()
+				return game:HttpGet(url)
+			end)
+			if not ok or type(body) ~= "string" then
+				local req = (syn and syn.request) or http_request or request
+				if req then
+					local okReq, res = pcall(req, { Url = url, Method = "GET" })
+					if okReq and res and res.Body then
+						ok, body = true, res.Body
+					end
+				end
+			end
+			if not ok or type(body) ~= "string" then break end
+			local okJson, data = pcall(function()
+				return HttpService:JSONDecode(body)
+			end)
+			if not (okJson and type(data) == "table" and type(data.data) == "table") then break end
+			for _, s in ipairs(data.data) do
+				if type(s.id) == "string" and tonumber(s.playing) and tonumber(s.maxPlayers) then
+					table.insert(list, { id = s.id, playing = s.playing, max = s.maxPlayers, ping = tonumber(s.ping) or 0, current = s.id == game.JobId })
+				end
+			end
+			cursor = data.nextPageCursor or ""
+			if cursor == "" then break end
+		end
+		return list
+	end
+
+	local function Label(s)
+		local tag = s.current and "  (you)" or ""
+		return string.format("%d/%d players  %d ms  %s%s", s.playing, s.max, s.ping, s.id:sub(1, 8), tag)
+	end
+
+	local function Filtered()
+		local out = {}
+		local search = State.search:lower()
+		for _, s in ipairs(State.servers) do
+			local fits = s.playing >= State.min and s.playing <= State.max and (search == "" or s.id:lower():find(search, 1, true))
+			if fits then table.insert(out, s) end
+		end
+		local mid = Players.MaxPlayers / 2
+		local sorters = {
+			["Lowest Players"] = function(a, b) return a.playing < b.playing end,
+			["Highest Players"] = function(a, b) return a.playing > b.playing end,
+			["Middle Players"] = function(a, b) return math.abs(a.playing - mid) < math.abs(b.playing - mid) end,
+			["Lowest Ping"] = function(a, b) return a.ping < b.ping end,
+			["Highest Ping"] = function(a, b) return a.ping > b.ping end,
+		}
+		table.sort(out, sorters[State.sort] or sorters["Lowest Players"])
+		return out
+	end
+
+	local function Join(s)
+		if not s then
+			Library:Notify("Servers", "No server matches", 3, "Warning")
+			return
+		end
+		if s.current then
+			Library:Notify("Servers", "You're already in that server", 3, "Warning")
+			return
+		end
+		if s.playing >= s.max then
+			Library:Notify("Servers", "That server is full", 3, "Warning")
+			return
+		end
+		Library:Notify("Servers", "Joining " .. s.playing .. "/" .. s.max .. " players, " .. s.ping .. " ms", 3, "Success")
+		pcall(function()
+			TeleportService:TeleportToPlaceInstance(game.PlaceId, s.id, LocalPlayer)
+		end)
+	end
+
+	local Browse = Tab:Section("Browse")
+	local CountRow = Browse:Row("Servers found", "Not loaded")
+	local ListDrop
+	local function Rebuild()
+		State.shown = Filtered()
+		local names = {}
+		for i, s in ipairs(State.shown) do
+			if i > 60 then break end
+			names[i] = Label(s)
+		end
+		CountRow:Set(#State.shown .. " of " .. #State.servers)
+		if ListDrop then
+			pcall(function()
+				ListDrop:Refresh(names, names[1])
+			end)
+		end
+	end
+	local function Refresh(silent)
+		if State.busy then return end
+		State.busy = true
+		CountRow:Set("Loading...")
+		task.spawn(function()
+			local list = Fetch()
+			State.busy = false
+			if #list == 0 then
+				CountRow:Set("Couldn't load")
+				if not silent then Library:Notify("Servers", "Couldn't load the server list. Your executor may block web requests", 4, "Warning") end
+				return
+			end
+			State.servers = list
+			Rebuild()
+		end)
+	end
+
+	Browse:Dropdown("Sort By", "PhantomSrvSort", { "Lowest Players", "Highest Players", "Middle Players", "Lowest Ping", "Highest Ping" }, "Lowest Players", nil, function(v)
+		State.sort = v
+		Rebuild()
+	end)
+	Browse:Slider("Min Players", "PhantomSrvMin", 0, Players.MaxPlayers, 0, 1, nil, function(v)
+		State.min = tonumber(v) or 0
+		Rebuild()
+	end)
+	Browse:Slider("Max Players", "PhantomSrvMax", 0, Players.MaxPlayers, Players.MaxPlayers, 1, nil, function(v)
+		State.max = tonumber(v) or Players.MaxPlayers
+		Rebuild()
+	end)
+	Browse:TextBox("Search", "PhantomSrvSearch", "Part of a server ID", nil, function(v)
+		State.search = tostring(v or "")
+		Rebuild()
+	end)
+	ListDrop = Browse:Dropdown("Server", "PhantomSrvList", { "Press Refresh" }, "Press Refresh", "Players, ping and server ID", function() end)
+	Browse:Button("Refresh", "Loads the server list", function()
+		Refresh(false)
+	end)
+	Browse:Button("Join Selected", nil, function()
+		local picked = ListDrop and ListDrop.GetSelected and ListDrop:GetSelected()
+		for _, s in ipairs(State.shown) do
+			if Label(s) == picked then
+				return Join(s)
+			end
+		end
+		Library:Notify("Servers", "Pick a server first", 3, "Warning")
+	end)
+
+	local Auto = Tab:Section("Quick Join", "Right")
+	local function Best(sortName, pickFn)
+		local list = {}
+		for _, s in ipairs(State.servers) do
+			if not s.current and s.playing < s.max then table.insert(list, s) end
+		end
+		table.sort(list, pickFn)
+		return list[1]
+	end
+	local function WithList(fn)
+		if #State.servers > 0 then return fn() end
+		CountRow:Set("Loading...")
+		task.spawn(function()
+			local list = Fetch()
+			if #list == 0 then
+				CountRow:Set("Couldn't load")
+				Library:Notify("Servers", "Couldn't load the server list", 4, "Warning")
+				return
+			end
+			State.servers = list
+			Rebuild()
+			fn()
+		end)
+	end
+	Auto:Button("Join Lowest Ping", nil, function()
+		WithList(function() Join(Best("ping", function(a, b) return a.ping < b.ping end)) end)
+	end)
+	Auto:Button("Join Smallest Server", nil, function()
+		WithList(function() Join(Best("small", function(a, b) return a.playing < b.playing end)) end)
+	end)
+	Auto:Button("Join Fullest Server", "The fullest server that still has a free slot", function()
+		WithList(function() Join(Best("big", function(a, b) return a.playing > b.playing end)) end)
+	end)
+	Auto:Slider("Target Players", "PhantomSrvTarget", 1, Players.MaxPlayers, State.target, 1, "Used by Join Target", function(v)
+		State.target = tonumber(v) or State.target
+	end)
+	Auto:Button("Join Target", "Joins the server closest to Target Players, lowest ping first", function()
+		WithList(function()
+			Join(Best("target", function(a, b)
+				local da, db = math.abs(a.playing - State.target), math.abs(b.playing - State.target)
+				if da == db then return a.ping < b.ping end
+				return da < db
+			end))
+		end)
+	end)
+	Auto:Button("Server Hop", "Joins a random other server", function()
+		WithList(function()
+			local pool = {}
+			for _, s in ipairs(State.servers) do
+				if not s.current and s.playing < s.max then table.insert(pool, s) end
+			end
+			Join(pool[math.random(1, math.max(#pool, 1))])
+		end)
+	end)
+
+	local Here = Tab:Section("This Server", "Right")
+	local PingRow = Here:Row("Your ping", "...")
+	local PlayersRow = Here:Row("Players", "")
+	Here:Row("Server ID", game.JobId ~= "" and game.JobId:sub(1, 8) or "Studio")
+	Here:Button("Copy Server ID", "Share it so friends can join the same server", function()
+		CopyLink(game.JobId ~= "" and game.JobId or "Studio session", "Server ID")
+	end)
+	Here:Button("Rejoin", nil, function()
+		Library:Notify("Servers", "Rejoining this server", 3)
+		pcall(function()
+			if #Players:GetPlayers() <= 1 then
+				TeleportService:Teleport(game.PlaceId, LocalPlayer)
+			else
+				TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
+			end
+		end)
+	end)
+	local joinId = ""
+	Here:TextBox("Join By ID", "PhantomSrvJoinId", "Paste a server ID", nil, function(v)
+		joinId = tostring(v or ""):match("^%s*(.-)%s*$")
+	end)
+	Here:Button("Join That Server", nil, function()
+		if joinId == "" then
+			Library:Notify("Servers", "Paste a server ID first", 3, "Warning")
+			return
+		end
+		pcall(function()
+			TeleportService:TeleportToPlaceInstance(game.PlaceId, joinId, LocalPlayer)
+		end)
+	end)
+
+	local last = 0
+	Track(RunService.Heartbeat, function()
+		local now = os.clock()
+		if now - last < 1 then return end
+		last = now
+		local ping = 0
+		pcall(function()
+			ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+		end)
+		PingRow:Set(ping .. " ms")
+		PlayersRow:Set(#Players:GetPlayers() .. "/" .. Players.MaxPlayers)
+	end)
+	task.delay(2, function()
+		if #State.servers == 0 then Refresh(true) end
+	end)
+	return Tab
+end
 
 function Library:CreateWindow(options)
 	options = options or {}
 	if options.Name then Config.Name = options.Name end
 	if options.Brand then Config.Brand = options.Brand end
-	-- starting style ("Obsidian" or "Fluent"); a player's saved choice wins
 	if options.Style and Styles[options.Style] then
 		Library.StyleName = options.Style
 		Style = Styles[options.Style]
@@ -3806,7 +3919,6 @@ function Library:CreateWindow(options)
 		Library.Rounding = Style.Rounding
 		LoadPalette(Library.CurrentTheme)
 	end
-	-- Obsidian uses Enum.Font.Code; pass e.g. Font = Enum.Font.GothamMedium for a sans font
 	if options.Font then
 		Config.FontMain = options.Font
 		Config.FontBold = options.Font
@@ -3815,8 +3927,6 @@ function Library:CreateWindow(options)
 	if options.Game then Library.HubConfig.Game = options.Game end
 	EnsureFolder(Config.ConfigFolder)
 
-	-- running a script again loads a new copy of the library; shut the old copy down first,
-	-- otherwise its features keep running with switches that are no longer on screen
 	local env = (type(getgenv) == "function" and getgenv()) or _G
 	local previous = rawget(env, "PhantomLibrary")
 	if previous ~= nil and previous ~= Library and type(previous.Unload) == "function" then
@@ -3838,14 +3948,11 @@ function Library:CreateWindow(options)
 	end
 
 	local vpNow = workspace.CurrentCamera.ViewportSize
-	-- phones / small screens: icon-only sidebar so the pages get the room
 	local Compact = IsTouchOnly() or vpNow.X < 800
 	local TOP, SIDE, FOOT = 48, Compact and 160 or 215, 20
 	local IconOnly = false
-	-- Main style: short title bar, a strip of tabs, then the boxed page area under it
 	local TABH = 20
 	local function TT() return Style.TopTabs == true end
-	-- Main style: sidebar runs the full height, the top bar only covers the content
 	local function ML() return Style.MacLayout == true end
 	local MAC_HEAD = 57
 	local function TopH() return TT() and 30 or (ML() and 56 or TOP) end
@@ -3868,12 +3975,10 @@ function Library:CreateWindow(options)
 	Corner(Window, 4)
 	local WindowStroke = Stroke(Window, "Stroke", 0)
 	ThemeBind(WindowStroke, {Color = function() return TT() and Theme.Accent or Theme.Stroke end})
-	-- second, darker frame outside the accent line (Main style)
 	local OuterFrame = New("UIStroke", {Thickness = 2, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Theme = {Color = "Stroke", Transparency = function() return TT() and 0 or 1 end}, Parent = New("Frame", {Size = UDim2.new(1, 2, 1, 2), Position = UDim2.fromOffset(-1, -1), BackgroundTransparency = 1, ZIndex = 0, Parent = Window})})
 	Library._MainWindow = Window
 	Library._SettingsWindow = Window
 
-	------------------------------------------------------------------ topbar
 	local Topbar = New("Frame", {Theme = {
 		BackgroundColor3 = "Topbar",
 		Size = function() return ML() and UDim2.new(1, -(SIDE + 1), 0, TopH()) or UDim2.new(1, 0, 0, TopH()) end,
@@ -3892,7 +3997,6 @@ function Library:CreateWindow(options)
 	ListLayout(TitleRow, 8, true, nil, Enum.VerticalAlignment.Center)
 	New("ImageLabel", {Image = ASSET_LOGO, ScaleType = Enum.ScaleType.Fit, LayoutOrder = 1, Theme = {Visible = function() return Style.TopLogo ~= false end, Size = function() return TT() and UDim2.fromOffset(16, 16) or UDim2.fromOffset(22, 22) end}, Parent = TitleRow})
 	New("TextLabel", {Text = Config.Brand, Size = UDim2.fromOffset(0, 22), AutomaticSize = Enum.AutomaticSize.X, LayoutOrder = 2, Theme = {TextSize = function() return Style.TopSize or 20 end, Visible = function() return not ML() end}, Parent = TitleRow})
-	-- Main style shows the open tab's name here instead of the brand
 	local TabTitle = New("TextLabel", {Text = "", Size = UDim2.fromOffset(0, 22), AutomaticSize = Enum.AutomaticSize.X, LayoutOrder = 3, Theme = {TextSize = function() return Style.TopSize or 15 end, Visible = ML}, Parent = TitleRow})
 
 	local function TopButton(icon, xOff, hoverKey)
@@ -3911,7 +4015,6 @@ function Library:CreateWindow(options)
 	end
 	local CloseBtn = TopButton(ASSET_CLOSE, -11, "Danger")
 	local MinBtn = TopButton(ASSET_MIN, -41, "Text")
-	-- Main style has no sidebar, so settings open from a gear in the title bar
 	local GearBtn = TopButton("", -71, "Text")
 	pcall(ApplyIcon, GearBtn:FindFirstChildOfClass("ImageLabel"), "settings")
 	ThemeBind(GearBtn, {Visible = TT})
@@ -3933,7 +4036,6 @@ function Library:CreateWindow(options)
 	IconImage(SearchBox, "search", 13, {Position = UDim2.new(0, 8, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), Theme = {ImageColor3 = "TextMuted"}})
 	local SearchInput = New("TextBox", {Size = UDim2.new(1, -34, 1, 0), Position = UDim2.fromOffset(28, 0), PlaceholderText = "Search", TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, ClipsDescendants = true, Parent = SearchBox})
 
-	------------------------------------------------------------------ footer
 	local function HasFooter() return Style.Footer ~= false end
 	local Footer = New("Frame", {Size = UDim2.new(1, 0, 0, FOOT), Position = UDim2.new(0, 0, 1, -FOOT), Theme = {BackgroundColor3 = "Topbar", Visible = HasFooter}, Parent = Window})
 	Corner(Footer, 4)
@@ -3941,9 +4043,7 @@ function Library:CreateWindow(options)
 	New("Frame", {Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 1, -(FOOT + 1)), Theme = {BackgroundColor3 = "Stroke", BackgroundTransparency = function() return Style.Dividers == false and 1 or 0 end, Visible = HasFooter}, Parent = Window})
 	New("TextLabel", {Text = GameName, TextSize = 13, Size = UDim2.new(1, -60, 1, 0), Position = UDim2.fromOffset(30, 0), TextTruncate = Enum.TextTruncate.AtEnd, Theme = {TextColor3 = "TextMuted", Visible = function() return not Style.SideTitle end}, Parent = Footer})
 
-	------------------------------------------------------------------ sidebar
 	local function BodyH() return TOP + 1 + (HasFooter() and (FOOT + 1) or 0) end
-	-- in the Main style the "sidebar" becomes the tab strip across the top
 	local Sidebar = New("Frame", {Theme = {
 		BackgroundColor3 = "Sidebar",
 		Position = function()
@@ -3957,7 +4057,6 @@ function Library:CreateWindow(options)
 	}, Parent = Window})
 	New("UIStroke", {ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Theme = {Color = "Stroke", Transparency = function() return TT() and 0 or 1 end}, Parent = Sidebar})
 	New("Frame", {Theme = {Visible = function() return not TT() end, Position = function() return UDim2.fromOffset(SIDE, ML() and 0 or TOP + 1) end, Size = function() return ML() and UDim2.new(0, 1, 1, 0) or UDim2.new(0, 1, 1, -BodyH()) end, BackgroundColor3 = "Stroke", BackgroundTransparency = function() return Style.Dividers == false and 1 or 0 end}, Parent = Window})
-	-- Main style sidebar head: window dots, then the hub name and game under it
 	local MacHead = New("Frame", {Size = UDim2.new(1, 0, 0, MAC_HEAD), BackgroundTransparency = 1, Active = true, Theme = {Visible = ML}, Parent = Sidebar})
 	local HeadInfo = New("Frame", {Size = UDim2.new(1, -32, 0, 56), Position = UDim2.fromOffset(16, 0), BackgroundTransparency = 1, Parent = MacHead})
 	ListLayout(HeadInfo, 2, false, nil, Enum.VerticalAlignment.Center)
@@ -3978,7 +4077,6 @@ function Library:CreateWindow(options)
 			return Style.SideTitle and UDim2.new(1, 0, 1, -96) or UDim2.new(1, 0, 1, -50)
 		end,
 	}, Parent = MainStack})
-	-- like the old library: game name on top of the tab list, cut off with "..." when too long
 	local SideTitle = New("TextLabel", {Text = GameName, Font = Config.FontBold, TextSize = 18, Size = UDim2.new(1, -28, 0, 24), Position = UDim2.fromOffset(14, 12), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Theme = {TextColor3 = "Accent", Visible = function() return Style.SideTitle == true end}, Parent = MainStack})
 	ApplyTooltip(SideTitle, GameName)
 	New("Frame", {Size = UDim2.new(1, -24, 0, 1), Position = UDim2.fromOffset(12, 43), Theme = {BackgroundColor3 = "Stroke", Visible = function() return Style.SideTitle == true end}, Parent = MainStack})
@@ -3989,12 +4087,10 @@ function Library:CreateWindow(options)
 			Padding = function() return UDim.new(0, TT() and 0 or 2) end,
 			FillDirection = function() return TT() and Enum.FillDirection.Horizontal or Enum.FillDirection.Vertical end,
 		})
-		-- tabs share the strip evenly
 		pcall(function() ThemeBind(list, {HorizontalFlex = function() return TT() and Enum.UIFlexAlignment.Fill or Enum.UIFlexAlignment.None end}) end)
 	end
 	StripLayout(ListLayout(TabContainer, 2))
 
-	-- profile row at the bottom of the sidebar, opens settings
 	New("Frame", {Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 1, -50), Theme = {Visible = function() return not TT() end, BackgroundColor3 = "Stroke", BackgroundTransparency = function() return Style.Dividers == false and 1 or 0 end}, Parent = MainStack})
 	local Profile = New("TextButton", {BackgroundTransparency = 1, Theme = {
 		BackgroundColor3 = "Container",
@@ -4067,8 +4163,6 @@ function Library:CreateWindow(options)
 	ThemeBind(Padding(SetContainer, 8, 8, 8, 8), {PaddingTop = SidePad(8), PaddingBottom = SidePad(8), PaddingLeft = SidePad(Compact and 6 or 8), PaddingRight = SidePad(Compact and 6 or 8)})
 	StripLayout(ListLayout(SetContainer, 2))
 
-	------------------------------------------------------------------ pages + overlays
-	-- the window itself is the theme's gradient; bars and sidebar are tinted glass over it
 	ThemeBind(Window, {
 		BackgroundColor3 = function() return Color3.new(1, 1, 1) end,
 		BackgroundTransparency = function() return Style.WindowT end,
@@ -4180,7 +4274,6 @@ function Library:CreateWindow(options)
 
 	
 	local openToken = 0
-	-- background blur was removed; this only cleans up a blur left by an older version
 	local function SetBlur()
 		pcall(function()
 			for _, where in ipairs({Lighting, workspace.CurrentCamera}) do
@@ -4225,7 +4318,6 @@ function Library:CreateWindow(options)
 	Track(MinBtn.MouseButton1Click, function() ShowWindow(false) end)
 
 
-	
 	local MiniGui = New("ScreenGui", {Name = "PhantomMiniButton", IgnoreGuiInset = true, ResetOnSpawn = false, Enabled = not Library.UIHidden, Parent = GetParent()})
 	local MiniButton = New("ImageButton", {Visible = Library.MiniButtonEnabled, Size = UDim2.fromOffset(48, 48), Position = UDim2.new(0, 20, 0.5, -24), Image = ASSET_LOGO, ScaleType = Enum.ScaleType.Fit, BackgroundTransparency = 0.05, Active = true, Theme = {BackgroundColor3 = "Background"}, Parent = MiniGui})
 	Corner(MiniButton, 24)
@@ -4442,10 +4534,8 @@ function Library:CreateWindow(options)
 		return CreateTab(name, iconId, MainState, false)
 	end
 
-	-- a thin line in the tab list; tabs made after it form the next group
 	function WindowObj:TabDivider()
 		MainState.Slot = (MainState.Slot or 0) + 1
-		-- only the Main style shows tab groups; the other styles keep one plain list
 		local Gap = New("Frame", {BackgroundTransparency = 1, LayoutOrder = MainState.Slot, Size = UDim2.new(1, 0, 0, 21), Theme = {
 			Visible = function() return Style.MacLayout == true end,
 		}, Parent = MainState.List})
@@ -4569,7 +4659,6 @@ function Library:CreateWindow(options)
 		local Configs = CreateTab("Configs", "layers", SetState, true)
 
 		
-		------------------------------------------------ General
 		local Iface = General:Section("Interface")
 		Iface:Toggle("Watermark", "WatermarkToggle", Library.WatermarkEnabled, "FPS / ping bar in the corner", function(state)
 			Library.WatermarkEnabled = state
@@ -4627,7 +4716,6 @@ function Library:CreateWindow(options)
 		end)
 		ThemeBind(UnloadBtn, {TextColor3 = "Danger"})
 
-		------------------------------------------------ Appearance
 		local LookSec = Appearance:Section("Look")
 		LookSec:Dropdown("Style", "UIStyle", StyleOrder, Library.StyleName, "Main, Fluent or Obsidian. Changes the whole look instantly", function(name)
 			if type(name) == "string" and name ~= Library.StyleName then
@@ -4648,7 +4736,6 @@ function Library:CreateWindow(options)
 			if AccentPicker:Get() ~= Theme.Accent then AccentPicker:Set(Theme.Accent, true) end
 		end)
 
-		-- every base color can be overridden; overrides survive switching presets
 		local ColorSec = Appearance:Section("Colors")
 		local colorPickers = {}
 		local function ColorOption(label, flagName, keys, tip)
@@ -4695,7 +4782,6 @@ function Library:CreateWindow(options)
 			for _, cp in ipairs(colorPickers) do cp.Picker:Set(Theme[cp.Key], true) end
 		end)
 
-		------------------------------------------------ Keybinds
 		local MenuKeys = Keys:Section("Menu")
 		MenuKeys:KeyPicker("Open / close menu", Config.Keybind, function(k)
 			if k == Enum.KeyCode.Unknown then return end
@@ -4726,7 +4812,6 @@ function Library:CreateWindow(options)
 			ListSec:Label("Click a key box to bind it. Right click it to switch between Toggle, Hold and Always.")
 		end
 
-		------------------------------------------------ Configs
 		local Profiles = Configs:Section("Profiles")
 		local NameInput = Profiles:TextBox("Name", "ConfigNameFlag", "New profile name", "Name for a new profile", function() end)
 		local list = Library:GetConfigs()
@@ -4825,11 +4910,11 @@ function Library:CreateWindow(options)
 
 	
 	local InfoTab = WindowObj:Tab("Info", "info")
+	pcall(BuildServersTab, WindowObj)
 	WindowObj:TabDivider()
 	PopulateSettings()
 
 	
-	-- left: who / where
 	local Overview = InfoTab:Section("Overview")
 	Overview:Label("Welcome back, " .. LocalPlayer.DisplayName .. ".")
 	Overview:Divider()
@@ -4860,22 +4945,11 @@ function Library:CreateWindow(options)
 		UptimeRow:Set(Clock(workspace.DistributedGameTime))
 	end)
 
-	local Server = InfoTab:Section("Server")
-	local MenuKeyRow = Server:Row("Menu key", Config.Keybind.Name)
+	local MenuKeyRow = Overview:Row("Menu key", Config.Keybind.Name)
 	Track(RunService.Heartbeat, function()
 		if MenuKeyRow.Value ~= Config.Keybind.Name then MenuKeyRow:Set(Config.Keybind.Name) end
 	end)
-	Server:Button("Copy server ID", "Share it so friends can join the same server", function()
-		CopyLink(game.JobId ~= "" and game.JobId or "Studio session", "Server ID")
-	end)
-	Server:Button("Rejoin", nil, function()
-		Library:Notify("Rejoining", "Teleporting back into this server", 3)
-		pcall(function()
-			game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
-		end)
-	end)
 
-	-- right: changelog + links
 	local log = Library.HubConfig.UpdateLog or {}
 	local hasAdded = type(log.Added) == "table" and #log.Added > 0
 	local hasFixed = type(log.Fixed) == "table" and #log.Fixed > 0
