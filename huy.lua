@@ -2495,6 +2495,77 @@ local function AttachElements(Section, Content, ctx)
 		return RowObj
 	end
 
+	function Section:Graph(text, height, maxPoints)
+		height = tonumber(height) or 60
+		local GraphObj = {Values = {}, Max = tonumber(maxPoints) or 30, Suffix = ""}
+		local Frame = New("Frame", {Size = UDim2.new(1, 0, 0, height + 20), BackgroundTransparency = 1, LayoutOrder = NextOrder(), Parent = Content})
+		AddItem(text, Frame)
+		New("TextLabel", {Text = text, TextSize = 13, Size = UDim2.new(0.6, 0, 0, 14), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Theme = {TextColor3 = "TextDark"}, Parent = Frame})
+		local Now = New("TextLabel", {Text = "", TextSize = 13, Size = UDim2.new(0.4, 0, 0, 14), Position = UDim2.fromScale(0.6, 0), TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd, Parent = Frame})
+		local Area = New("Frame", {Size = UDim2.new(1, 0, 0, height), Position = UDim2.fromOffset(0, 20), ClipsDescendants = true, Theme = {BackgroundColor3 = "Container"}, Parent = Frame})
+		Corner(Area, SMALL_R)
+		local Peak = New("TextLabel", {Text = "", TextSize = 11, Size = UDim2.new(1, -6, 0, 12), Position = UDim2.fromOffset(3, 2), TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 3, BackgroundTransparency = 1, Theme = {TextColor3 = "TextMuted"}, Parent = Area})
+		local bars = {}
+		local function Redraw()
+			local vals = GraphObj.Values
+			local top = 0
+			for _, v in ipairs(vals) do
+				if v > top then top = v end
+			end
+			if top <= 0 then top = 1 end
+			Peak.Text = #vals > 0 and ("max " .. tostring(math.floor(top * 100 + 0.5) / 100) .. GraphObj.Suffix) or "no data yet"
+			local count = math.max(GraphObj.Max, 1)
+			for i = 1, count do
+				local v = vals[i]
+				local bar = bars[i]
+				if v then
+					if not bar then
+						bar = New("Frame", {BorderSizePixel = 0, ZIndex = 2, Theme = {BackgroundColor3 = "Accent"}, Parent = Area})
+						bars[i] = bar
+					end
+					local h = math.clamp(v / top, 0.02, 1)
+					bar.Size = UDim2.new(1 / count, -2, h * 0.82, 0)
+					bar.Position = UDim2.new((i - 1) / count, 1, 1 - h * 0.82, 0)
+					bar.BackgroundTransparency = 0.15 + 0.5 * (1 - i / math.max(#vals, 1))
+					bar.Visible = true
+				elseif bar then
+					bar.Visible = false
+				end
+			end
+		end
+		function GraphObj:Push(v, nowText)
+			table.insert(GraphObj.Values, tonumber(v) or 0)
+			while #GraphObj.Values > GraphObj.Max do
+				table.remove(GraphObj.Values, 1)
+			end
+			Now.Text = nowText or (tostring(v) .. GraphObj.Suffix)
+			Redraw()
+		end
+		function GraphObj:SetValues(list, nowText)
+			GraphObj.Values = {}
+			for _, v in ipairs(list or {}) do
+				table.insert(GraphObj.Values, tonumber(v) or 0)
+			end
+			while #GraphObj.Values > GraphObj.Max do
+				table.remove(GraphObj.Values, 1)
+			end
+			if nowText then Now.Text = nowText end
+			Redraw()
+		end
+		function GraphObj:SetMax(n)
+			GraphObj.Max = math.max(2, math.floor(tonumber(n) or GraphObj.Max))
+			for _, b in pairs(bars) do b.Visible = false end
+			GraphObj:SetValues(GraphObj.Values)
+		end
+		function GraphObj:Clear()
+			GraphObj.Values = {}
+			Now.Text = ""
+			Redraw()
+		end
+		Redraw()
+		return GraphObj
+	end
+
 	function Section:Button(text, tooltipText, callback)
 		local Btn = FlatButton(Cell(), text, 0)
 		AddItem(text, Btn)
