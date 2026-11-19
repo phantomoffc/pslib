@@ -1253,12 +1253,15 @@ function Library:LoadConfig(name)
 	if not isfile(path) then return false end
 	local ok, data = pcall(HttpService.JSONDecode, HttpService, readfile(path))
 	if not ok or type(data) ~= "table" then return false end
-	for flag, value in pairs(data) do
-		if not IgnoredFlags[flag] then Library.Flags[flag] = DeserializeConfigValue(value) end
-	end
-	for flag, value in pairs(Library.Flags) do
-		if not IgnoredFlags[flag] and data[flag] ~= nil and Library.Signals[flag] then
-			task.spawn(Library.Signals[flag], value)
+	for flag, raw in pairs(data) do
+		local signal = Library.Signals[flag]
+		if not IgnoredFlags[flag] and signal then
+			local value = DeserializeConfigValue(raw)
+			local current = Library.Flags[flag]
+			if value ~= nil and (current == nil or typeof(current) == typeof(value)) then
+				Library.Flags[flag] = value
+				task.spawn(pcall, signal, value)
+			end
 		end
 	end
 	return true
@@ -1289,6 +1292,34 @@ local function EnsureFolder(path)
 	end
 end
 Library.EnsureFolder = EnsureFolder
+
+local AUTOSAVE_RESET = "1"
+
+local function ResetOldAutosaves()
+	local marker = "PhantomHub/delfl.txt"
+	local done = false
+	pcall(function()
+		done = isfile(marker) and readfile(marker) == AUTOSAVE_RESET
+	end)
+	if done then return end
+	local function sweep(folder, depth)
+		local ok, files = pcall(listfiles, folder)
+		if not ok or type(files) ~= "table" then return end
+		for _, file in ipairs(files) do
+			local clean = string.gsub(file, "\\", "/")
+			if string.match(clean, "_autosave%.json$") then
+				pcall(delfile, file)
+			elseif depth < 4 and pcall(isfolder, file) and isfolder(file) then
+				sweep(file, depth + 1)
+			end
+		end
+	end
+	if pcall(isfolder, "PhantomHub") and isfolder("PhantomHub") then
+		sweep("PhantomHub", 0)
+	end
+	EnsureFolder("PhantomHub")
+	pcall(writefile, marker, AUTOSAVE_RESET)
+end
 
 local function InterfacePath()
 	local root = string.match((string.gsub(Config.ConfigFolder, "\\", "/")), "^[^/]+") or Config.ConfigFolder
@@ -4014,6 +4045,7 @@ function Library:CreateWindow(options)
 	if options.ConfigFolder then Config.ConfigFolder = options.ConfigFolder end
 	if options.Game then Library.HubConfig.Game = options.Game end
 	EnsureFolder(Config.ConfigFolder)
+	ResetOldAutosaves()
 
 	local env = (type(getgenv) == "function" and getgenv()) or _G
 	local previous = rawget(env, "PhantomLibrary")
@@ -5137,7 +5169,26 @@ function Library:CreateWindow(options)
 			end
 		end
 	end)
-	task.defer(function() Library:LoadConfig("_autosave") end)
+	task.spawn(function()
+		local function count()
+			local n = 0
+			for _ in pairs(Library.Signals) do n += 1 end
+			return n
+		end
+		local last, stable, waited = count(), 0, 0
+		while stable < 1.5 and waited < 10 do
+			task.wait(0.25)
+			waited += 0.25
+			local now = count()
+			if now == last then
+				stable += 0.25
+			else
+				stable, last = 0, now
+			end
+		end
+		if Library.Unloaded then return end
+		Library:LoadConfig("_autosave")
+	end)
 
 	task.defer(function() ShowWindow(true) end)
 	return WindowObj
