@@ -209,7 +209,7 @@ local Styles = {
 		TabIcons = true, TabPill = false, Dividers = true, FlatChrome = true, WindowGradient = false,
 		TopAccent = false, TopLogo = false, TopSize = 15, PanelStrokeT = 0, ChromeT = 1,
 		SideTitle = false, Footer = false, MacLayout = true, MonoSwitch = true,
-		PanelT = 0.62, HideTitles = true, RowH = 30, ValueBox = true, InlineDropdown = true, PlainButtons = true,
+		PanelT = 0.62, HideTitles = false, RowH = 30, ValueBox = true, InlineDropdown = true, PlainButtons = true,
 		Base = {},
 	},
 }
