@@ -203,7 +203,7 @@ local Styles = {
 	},
 	["Main"] = {
 		Font = "Builder Sans", Rounding = "Round", Cards = false, CardPad = 0, CardT = 1, CardStrokeT = 1,
-		GroupPanel = true, GroupLine = false, TitleSize = 14, TitleDim = false, SecPad = 14, TitleBar = true,
+		GroupPanel = true, GroupLine = false, TitleSize = 14, TitleDim = false, SecPad = 14,
 		StrokeT = 0, WindowT = 0.12, Dim = 0.35, Slider = "thin", Toggle = "switch",
 		ButtonCenter = false, CenterLabels = false, Gradient = false,
 		TabIcons = true, TabPill = false, Dividers = true, FlatChrome = true, WindowGradient = false,
@@ -2429,17 +2429,10 @@ local function CreateSectionFrame(text, parent, order)
 		if Style.HeaderH then return UDim2.new(1, 0, 0, Style.HeaderH) end
 		return Style.GroupPanel and UDim2.new(1, 0, 0, 32) or UDim2.new(1, 0, 0, 26)
 	end}, Parent = Container})
-	local TitleBar = New("Frame", {Name = "TitleBar", Size = UDim2.fromOffset(3, 14), AnchorPoint = Vector2.new(0, 0.5), Theme = {
-		BackgroundColor3 = "Accent",
-		Visible = function() return Style.TitleBar == true end,
-		Position = function() return UDim2.new(0, Style.SecPad or 10, 0.5, 3) end,
-	}, Parent = Header})
-	Corner(TitleBar, 2)
 	local Title = New("TextLabel", {Text = tostring(text), Size = UDim2.new(1, -20, 1, 0), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Theme = {
 		TextSize = function() return Style.TitleSize or 15 end,
 		TextColor3 = function() return Style.TitleDim and Theme.TextDark or Theme.Text end,
 		Position = function()
-			if Style.TitleBar then return UDim2.fromOffset((Style.SecPad or 10) + 10, 3) end
 			if Style.HeaderH then return UDim2.fromOffset(7, 1) end
 			if Style.SecPad then return UDim2.fromOffset(Style.SecPad, 2) end
 			return Style.GroupPanel and UDim2.fromOffset(10, 0) or UDim2.fromOffset(2, 0)
